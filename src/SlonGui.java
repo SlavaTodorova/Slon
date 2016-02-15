@@ -1,10 +1,16 @@
 import java.awt.EventQueue;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
+import javax.swing.InputMap;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
@@ -24,6 +30,7 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 
 import javax.swing.JPanel;
 import javax.swing.JTable;
@@ -93,6 +100,24 @@ public class SlonGui {
 		table = new MultiLineCellTable(tbModel);
 		table.setDefaultRenderer(String.class, new MultiLineTableCellRenderer());
 		table.setDefaultEditor(String.class, new MultiLineTableCellEditor());
+		InputMap input = table.getInputMap(JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap actions = table.getActionMap();
+		KeyStroke enter = KeyStroke.getKeyStroke("ENTER");
+		input.put(enter, "go-to-next");
+		actions.put("go-to-next", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int row = table.getSelectedRow();
+				int col = table.getSelectedColumn();
+				if (row < table.getRowCount()-1) {
+					row += 1;
+				}
+				table.setRowSelectionInterval(row, row);
+			}
+			
+		});
+		
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setBorder(BorderFactory.createEmptyBorder());
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
@@ -141,7 +166,7 @@ public class SlonGui {
 	}
 
 
-	/*
+	/**
 	 * Loads translation from a .slon file
 	 * Or reads a monolingual source file, if no translation is available yet
 	 * 
@@ -218,7 +243,7 @@ public class SlonGui {
 	}
 
 
-	/*
+	/**
 	 * Reads a monolingual file and divides it into paragraphs.
 	 * For now Each paragraph has exactly one segment. %TODO Change this!
 	 * 
@@ -261,7 +286,7 @@ public class SlonGui {
 		bw.close();
 	}
 
-	/*
+	/**
 	 * Serializes the whole list of paragraphs
 	 * 
 	 * @param list LinkedList of Paragraphs that should be serialized
@@ -278,7 +303,7 @@ public class SlonGui {
 		oos.close();
 	}
 
-	/*
+	/**
 	 * Deserialized the whole list of paragraphs
 	 * 
 	 * @param filename where the serialized objects should be read from
