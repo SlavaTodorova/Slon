@@ -1,7 +1,6 @@
 import java.awt.EventQueue;
 
 import javax.swing.AbstractAction;
-import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.InputMap;
@@ -30,8 +29,6 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
@@ -98,6 +95,7 @@ public class SlonGui {
 			}
 		};
 		table = new MultiLineCellTable(tbModel);
+		table.setShowHorizontalLines(false);
 		table.setDefaultRenderer(String.class, new MultiLineTableCellRenderer());
 		table.setDefaultEditor(String.class, new MultiLineTableCellEditor());
 		InputMap input = table.getInputMap(JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -109,7 +107,6 @@ public class SlonGui {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int row = table.getSelectedRow();
-				int col = table.getSelectedColumn();
 				if (row < table.getRowCount()-1) {
 					row += 1;
 				}
@@ -136,8 +133,8 @@ public class SlonGui {
 		});
 		controlPanel.add(btnSave);
 
-		JButton btnChooseFile = new JButton("Choose file");
-		btnChooseFile.addActionListener(new ActionListener() {
+		JButton btnChooseSource = new JButton("Choose source");
+		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				// reset the instance variables and all that
 				// TODO here is a good place for an alert asking for saving the current translations
@@ -161,7 +158,18 @@ public class SlonGui {
 			}
 
 		});
-		controlPanel.add(btnChooseFile);
+		controlPanel.add(btnChooseSource);
+		
+		JButton btnChooseTarget = new JButton("Choose target");
+		btnChooseTarget.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				JFileChooser chooser = new JFileChooser();
+				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
+			}
+
+		});
+		btnChooseTarget.setEnabled(false);
+		controlPanel.add(btnChooseTarget);
 
 	}
 

@@ -1,6 +1,5 @@
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.TextArea;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -14,7 +13,6 @@ import javax.swing.BorderFactory;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.table.TableCellEditor;
 
@@ -41,6 +39,9 @@ import javax.swing.table.TableCellEditor;
  */
 public class MultiLineTableCellEditor extends AbstractCellEditor implements TableCellEditor, ActionListener{
 	private static final long serialVersionUID = 1L;
+
+	public Indentation indentation = new Indentation();
+
 	ResizableTextArea textArea = new ResizableTextArea() {
 		private static final long serialVersionUID = 1L;
 		public void setBounds(int x, int y, int width, int height) {
@@ -51,33 +52,23 @@ public class MultiLineTableCellEditor extends AbstractCellEditor implements Tabl
 	public MultiLineTableCellEditor(){
 		textArea.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 		textArea.registerKeyboardAction(this
-				, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_MASK)
+				, KeyStroke.getKeyStroke("ENTER")
 				, JComponent.WHEN_FOCUSED);
 		textArea.setLineWrap(true);
 		textArea.setWrapStyleWord(true);
-//		InputMap input = textArea.getInputMap();
-//		ActionMap actions = textArea.getActionMap();
-//		
-//		KeyStroke shiftEnter = KeyStroke.getKeyStroke("shift ENTER");
-//		KeyStroke enter = KeyStroke.getKeyStroke("ENTER");
-		
-//		input.put(shiftEnter, "insert-break");  // input.get(shiftEnter)) = "insert-break"
-//		input.put(enter, "do-nothing");
-		
-//		actions.put("insert-break", new AbstractAction() {
-//			private static final long serialVersionUID = 1L;
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				textArea.append("\n");
-//			}
-//		});
-//		actions.put("do-nothing", new AbstractAction() {
-//			private static final long serialVersionUID = 1L;
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				textArea.setText(textArea.getText());
-//			}
-//		});
+
+		// Ctrl+Enter should produce a new line
+		InputMap input = textArea.getInputMap();
+		ActionMap actions = textArea.getActionMap();
+		KeyStroke ctrlEnter = KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_MASK);
+		input.put(ctrlEnter, "new-line");
+		actions.put("new-line", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				textArea.insert("\n"+indentation.INDENT, textArea.getCaretPosition());
+			}
+		});
 	}
 
 	public Object getCellEditorValue(){
@@ -110,9 +101,17 @@ public class MultiLineTableCellEditor extends AbstractCellEditor implements Tabl
 	/*---------------------------[ TableCellEditor ]------------------------*/
 
 	public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column){
-		String text = value!=null ? value.toString() : "";
+		String text;
+		if (value != null) {
+			// add indentation to every first line
+			text = indentation.indent(value.toString());
+		} else {
+			text = indentation.INDENT;
+		}
 		textArea.setText(text);
 		return textArea;
 	}
+	
+
 
 }

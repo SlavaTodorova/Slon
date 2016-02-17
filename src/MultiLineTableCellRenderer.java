@@ -16,12 +16,12 @@ import javax.swing.table.TableCellRenderer;
  * Multiline Table Cell Renderer.
  */
 public class MultiLineTableCellRenderer extends JTextArea implements TableCellRenderer {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
+	
 	private ArrayList<ArrayList<Integer>> rowColHeight = new ArrayList<ArrayList<Integer>>();
-
+	
+	private Indentation indentation = new Indentation();
+	
 	public MultiLineTableCellRenderer() {
 		setLineWrap(true);
 		setWrapStyleWord(true);
@@ -49,7 +49,7 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 			setBorder(new EmptyBorder(1, 2, 1, 2));
 		}
 		if (value != null) {
-			setText(value.toString());
+			setText(indentation.indent(value.toString()));
 		} else {
 			setText("");
 		}

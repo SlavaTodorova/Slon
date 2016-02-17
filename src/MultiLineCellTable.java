@@ -186,4 +186,5 @@ public class MultiLineCellTable extends JTable {
 			else
 				return false;
 	}
+
 }
