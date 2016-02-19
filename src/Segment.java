@@ -9,19 +9,28 @@ public class Segment implements java.io.Serializable{
 	// source and target
 	private SegmentComponent source;
 	private SegmentComponent target;
+	private String comment;
 	
 	// Constructors	
+	public Segment(SegmentComponent src, SegmentComponent trg, String comment) {
+		this.source = src;
+		this.target = trg;
+		this.comment = comment;
+	}
+	
 	public Segment(SegmentComponent src, SegmentComponent trg) {
+		this();
 		this.source = src;
 		this.target = trg;
 	}
 	
 	public Segment(SegmentComponent src) {
-		this(src, new SegmentComponent());
+		this();
+		this.source = src;
 	}
 	
 	public Segment() {
-		this(new SegmentComponent(), new SegmentComponent());
+		this(new SegmentComponent(), new SegmentComponent(), "");
 	}
 	
 	// Getters and setters
@@ -40,6 +49,16 @@ public class Segment implements java.io.Serializable{
 	public void setTarget(SegmentComponent trg) {
 		this.target = trg;
 	}
+	
+	public String getComment() {
+		return this.comment;
+	}
+	
+	public void setComment(String text) {
+		this.comment = text;
+	}
+	
+	/*-----To String------*/
 	
 	public String toString() {
 		return this.source.toString() + "|" + this.target.toString();

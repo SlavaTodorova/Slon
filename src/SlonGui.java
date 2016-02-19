@@ -29,8 +29,11 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+
 import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 
 public class SlonGui {
@@ -39,7 +42,10 @@ public class SlonGui {
 	private JTable table;
 
 	private File sourceFile;
+	private File translationFile;
 	private LinkedList<Paragraph> paragraphs;
+	
+	private int unsavedChanges; // 0 if no unsaved changes, < 0 if the user stubernly hits the "save" button anyway.
 
 	/**
 	 * Launch the application.
@@ -70,16 +76,19 @@ public class SlonGui {
 	 */
 	private void initialize() {
 		frame = new JFrame("SLON: automated help for translation and tranlsation reviewing");
-		frame.setBounds(250, 150, 550, 400);
+		// frame.setBounds(250, 150, 550, 400);
+		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		sourceFile = null;
+		translationFile = null;
 		paragraphs = null;
-
+		unsavedChanges = 0;
+		
 		JPanel controlPanel = new JPanel();
 		frame.getContentPane().add(controlPanel, BorderLayout.NORTH);
 
-		String[] columnNames = {"Source", "Target"};
+		String[] columnNames = {"Source", "Target", "Comments"};
 		Object[][] data = {{}};
 		DefaultTableModel tbModel = new DefaultTableModel(data, columnNames) {
 			private static final long serialVersionUID = 1L;
@@ -114,8 +123,16 @@ public class SlonGui {
 			}
 			
 		});
-		
-		JScrollPane scroll = new JScrollPane(table);
+		table.getModel().addTableModelListener(new TableModelListener() {	
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				int col = e.getColumn();
+				if (col > 0) {
+					unsavedChanges = 1;
+				}
+			}
+		});
+		JScrollPane scroll = new JScrollPane(table);		
 		scroll.setBorder(BorderFactory.createEmptyBorder());
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
 		frame.pack();
@@ -123,11 +140,15 @@ public class SlonGui {
 		JButton btnSave = new JButton("Save");
 		btnSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				if (paragraphs != null && sourceFile != null) {
+				if (unsavedChanges > 0) {
 					// write updated translation
 					saveTranslation();
 				} else {
-					JOptionPane.showMessageDialog(null, "There is no translation to be saved.");
+					if (unsavedChanges == -3) {
+						JOptionPane.showMessageDialog(null, "There are no changes to be saved.\nChanges only take effect once the segment is closed.");
+					} else {
+						unsavedChanges--;
+					}
 				}
 			}
 		});
@@ -138,7 +159,7 @@ public class SlonGui {
 			public void actionPerformed(ActionEvent arg0) {
 				// reset the instance variables and all that
 				// TODO here is a good place for an alert asking for saving the current translations
-				if (sourceFile != null && paragraphs != null) {
+				if (unsavedChanges > 0) {
 					showSaveOptionDialog();
 				}
 				clean();
@@ -148,11 +169,13 @@ public class SlonGui {
 
 				int result = chooser.showOpenDialog(null);
 				if (result == JFileChooser.APPROVE_OPTION) {
-					sourceFile = getCorrectFile(chooser.getSelectedFile(), chooser);
-					if (sourceFile != null) {
-						System.out.println("Selected file: " + sourceFile.getAbsolutePath());
+					getCorrectFile(chooser.getSelectedFile(), chooser);
+					if (translationFile != null) {
 						// read translation in progress
-						loadTranslation(sourceFile);
+						loadOldTranslation(translationFile);
+					} else if (sourceFile != null) {
+						// read source for new translation
+						loadNewTranslation(sourceFile);
 					}
 				}
 			}
@@ -160,48 +183,45 @@ public class SlonGui {
 		});
 		controlPanel.add(btnChooseSource);
 		
-		JButton btnChooseTarget = new JButton("Choose target");
-		btnChooseTarget.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				JFileChooser chooser = new JFileChooser();
-				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
-			}
-
-		});
-		btnChooseTarget.setEnabled(false);
-		controlPanel.add(btnChooseTarget);
+//		//TODO add the opt
+//		JButton btnChooseTarget = new JButton("Choose target");
+//		btnChooseTarget.addActionListener(new ActionListener() {
+//			public void actionPerformed(ActionEvent arg0) {
+//				JFileChooser chooser = new JFileChooser();
+//				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
+//			}
+//
+//		});
+//		btnChooseTarget.setEnabled(false);
+//		controlPanel.add(btnChooseTarget);
 
 	}
-
-
+	
 	/**
 	 * Loads translation from a .slon file
 	 * Or reads a monolingual source file, if no translation is available yet
 	 * 
 	 */
-	private void loadTranslation(File srcFile) {		
-		String srcFileName = srcFile.getName();
-		if (srcFile.isFile()) {
-			String serFileName = getSerFileName();
-			File serFile = new File(serFileName);
-			if (! serFile.exists()) {
-				try {
-					paragraphs = readSource(srcFileName);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else {
-				try {
-					paragraphs = deserializeAll(getSerFileName());
-				} catch (ClassNotFoundException | IOException e) {
-					e.printStackTrace();
-				}
-			}
-			ListIterator<Paragraph> iteratorP = paragraphs.listIterator();
-			while (iteratorP.hasNext()) {
-				showParagraph(iteratorP.next());
-			}
+	private void loadOldTranslation(File f) {		
+		try {
+			paragraphs = deserializeAll(f.getName());
+		} catch (ClassNotFoundException | IOException e) {
+			e.printStackTrace();
 		}
+		showParagraphs();
+	}
+
+	/**
+	 * Loads source for translation from a .txt file
+	 *
+	 */
+	private void loadNewTranslation(File f) {		
+		try {
+			paragraphs = readSource(f.getName());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		showParagraphs();
 	}
 
 	private String getSerFileName() {
@@ -224,8 +244,10 @@ public class SlonGui {
 		Paragraph par = iteratorP.next();
 		ListIterator<Segment> iteratorS = par.getSegments().listIterator();
 		Segment seg = iteratorS.next();
+		DefaultTableModel tbModel = (DefaultTableModel) table.getModel();
 		for (int i=0; i < paragraphs.size(); i++) {
-			seg.setTarget(new SegmentComponent(table.getModel().getValueAt(i, 1).toString()));
+			seg.setTarget(new SegmentComponent(tbModel.getValueAt(i, 1).toString()));
+			seg.setComment(tbModel.getValueAt(i, 2).toString());
 			if (! iteratorS.hasNext()) {
 				if (! iteratorP.hasNext()) {
 					break;
@@ -247,7 +269,8 @@ public class SlonGui {
 			writeTarget(getTarFileName()); // write the translated parts to the .txt target file
 		} catch (IOException e) {
 			e.printStackTrace();
-		} 
+		}
+		unsavedChanges = 0;
 	}
 
 
@@ -351,28 +374,30 @@ public class SlonGui {
 				options[0]);
 		if (n == 0) {
 			saveTranslation();
-			JOptionPane.showMessageDialog(null, 
-					"Current translation saved successfully!\n" +
-					"Proceed with loading of new source file.");
 		}
 	}
 
-	private void showParagraph(Paragraph par) {
+	private void showParagraphs() {
 		DefaultTableModel tblModel = (DefaultTableModel) table.getModel();
 
-		ListIterator<Segment> iterator = par.getSegments().listIterator();
-
+		ListIterator<Paragraph> iteratorP = paragraphs.listIterator();
+		ListIterator<Segment> iteratorS;
 		String sourceText;
 		String targetText;
-		while (iterator.hasNext()) {
-			Segment seg = iterator.next();
-			sourceText = seg.getSource().getText();
-			System.out.println(seg.getSource().getText());
-			// parPanel.add(sourceText);
-			targetText = seg.getTarget().getText();
-			// parPanel.add(targetText);
-			tblModel.addRow(new Object[] {sourceText, targetText});
+		String comment;
+		
+		while (iteratorP.hasNext()) {
+			Paragraph par = iteratorP.next();
+			iteratorS = par.getSegments().listIterator();
+			while (iteratorS.hasNext()) {
+				Segment seg = iteratorS.next();
+				sourceText = seg.getSource().getText();
+				targetText = seg.getTarget().getText();
+				comment = seg.getComment();
+				tblModel.addRow(new Object[] {sourceText, targetText, comment});
+			}
 		}
+		
 	}
 
 	private void clean() {
@@ -390,36 +415,48 @@ public class SlonGui {
 		paragraphs = null;
 	}
 
-	private File getCorrectFile(File f, JFileChooser chooser) {
+	private void getCorrectFile(File f, JFileChooser chooser) {
 		String fileName = f.getName();
-		while (!fileName.endsWith(".txt")) {
-			JOptionPane.showMessageDialog(null, "Please load a plain text file.");
+		while (!fileName.endsWith(".txt") && !fileName.endsWith(".slon")) {
+			JOptionPane.showMessageDialog(null, "Please load a \".txt\" or a \".slon\" file.");
 			int result = chooser.showOpenDialog(null);
 			if (result == JFileChooser.APPROVE_OPTION) {
-				f = getCorrectFile(chooser.getSelectedFile(), chooser);
+				f = chooser.getSelectedFile();
 				fileName = f.getName();
-			} else if (result == JFileChooser.CANCEL_OPTION){
-				return null;
+				getCorrectFile(f, chooser);
 			}
 		}
-		if (fileName.endsWith(".translated.txt")) {
-			Object[] options = {"Load as source", "Load as target"};
-			int n = JOptionPane.showOptionDialog(null,
-					"You have selected a file containing translation of another file.\n" +
-					"Would you like to open this file as source or as target text of your translation?",
-					"Choosing if to load a target of a previous translation as source.",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE,
-					null,
-					options,
-					options[1]);
-			if (n == 0) {
-				return f; // as source
-			} else if (n == 1) {
-				fileName = fileName.substring(0, fileName.length()-15) + ".txt";
-				return new File(fileName);
+		if (fileName.endsWith(".txt")) {
+			sourceFile = f;
+			File possFile = new File(fileName.substring(0, fileName.length()-3)+"slon");
+			if (possFile.exists()) {
+				translationFile = possFile;
+			}
+		} else { // ends with ".slon"
+			translationFile = f;
+			File possFile = new File(fileName.substring(0, fileName.length()-4)+"txt");
+			if (possFile.exists()) {
+				sourceFile = possFile;
 			}
 		}
-		return f;
+			//		// TODO See if it is meaningful to allow loading of targets as sources
+			//		if (fileName.endsWith(".translated.txt")) {
+			//			Object[] options = {"Load as source", "Load as target"};
+			//			int n = JOptionPane.showOptionDialog(null,
+			//					"You have selected a file containing translation of another file.\n" +
+			//					"Would you like to open this file as source or as target text of your translation?",
+			//					"Choosing if to load a target of a previous translation as source.",
+			//					JOptionPane.YES_NO_OPTION,
+			//					JOptionPane.QUESTION_MESSAGE,
+			//					null,
+			//					options,
+			//					options[1]);
+			//			if (n == 0) {
+			//				return f; // as source
+			//			} else if (n == 1) {
+			//				fileName = fileName.substring(0, fileName.length()-15) + ".txt";
+			//				return new File(fileName);
+			//			}
+			//		}
 	}
 }

@@ -13,11 +13,12 @@ import javax.swing.JTable;
 import javax.swing.JViewport;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 
-public class MultiLineCellTable extends JTable {
+public class MultiLineCellTable extends JTable implements TableModelListener {
 	private static final long serialVersionUID = 1L;
 
 	/*---------------------------------[ Constructors ]---------------------------------*/
