@@ -4,7 +4,6 @@ import java.awt.LayoutManager;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
-import javax.swing.BorderFactory;
 import javax.swing.InputMap;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -12,6 +11,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
+import javax.swing.UIManager;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,12 +32,22 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
+
+import java.awt.Color;
+import java.awt.Component;
+
+import javax.swing.border.EmptyBorder;
+
+import java.awt.Cursor;
 
 public class SlonGui {
 
@@ -60,6 +70,9 @@ public class SlonGui {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
+					// Set cross-platform Java L&F (also called "Metal")
+					UIManager.setLookAndFeel(
+							UIManager.getSystemLookAndFeelClassName());
 					SlonGui window = new SlonGui();
 					window.frame.setVisible(true);
 				} catch (Exception e) {
@@ -91,10 +104,15 @@ public class SlonGui {
 		unsavedChanges = false;
 
 		JPanel controlPanel = new JPanel((LayoutManager) new BorderLayout());
+		controlPanel.setBackground(new Color(70, 130, 180));
 		JPanel actionsPanel = new JPanel((LayoutManager) new FlowLayout(FlowLayout.LEFT));
+		actionsPanel.setBackground(new Color(70, 130, 180));
 		controlPanel.add(actionsPanel, BorderLayout.WEST);
 		frame.getContentPane().add(controlPanel, BorderLayout.NORTH);
 		btnSave = new JButton("Save");
+		btnSave.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnSave.setForeground(new Color(0, 0, 0));
+		btnSave.setBackground(UIManager.getColor("Table.selectionBackground"));
 		btnSave.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				// write updated translation
@@ -105,6 +123,8 @@ public class SlonGui {
 		actionsPanel.add(btnSave);
 
 		JButton btnChooseSource = new JButton("Choose source");
+		btnChooseSource.setForeground(new Color(0, 0, 0));
+		btnChooseSource.setBackground(UIManager.getColor("Table.selectionBackground"));
 		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				// reset the instance variables and all that
@@ -115,7 +135,7 @@ public class SlonGui {
 				clean();
 
 				JFileChooser chooser = new JFileChooser();
-				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
+				chooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 
 				int result = chooser.showOpenDialog(null);
 				if (result == JFileChooser.APPROVE_OPTION) {
@@ -132,10 +152,13 @@ public class SlonGui {
 
 		});
 		actionsPanel.add(btnChooseSource);
-		
+
 		JPanel helpPanel = new JPanel((LayoutManager) new FlowLayout(FlowLayout.RIGHT));
+		helpPanel.setBackground(new Color(70, 130, 180));
 		controlPanel.add(helpPanel, BorderLayout.EAST);
 		JButton btnHelp = new JButton("Help");
+		btnHelp.setForeground(new Color(0, 0, 0));
+		btnHelp.setBackground(UIManager.getColor("Table.selectionBackground"));
 		btnHelp.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -145,13 +168,15 @@ public class SlonGui {
 				helpTextArea.setLineWrap(true);
 				helpTextArea.setWrapStyleWord(true);
 				helpTextArea.setEditable(false);
-				JScrollPane scrollPane = new JScrollPane(helpTextArea);
-				JOptionPane.showMessageDialog(null, scrollPane);
+				helpTextArea.setOpaque(false);
+				//JScrollPane scrollPane = new JScrollPane(helpTextArea);
+				JOptionPane.showMessageDialog(null, helpTextArea, "SLON Help Page",
+					    JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
 		helpPanel.add(btnHelp);
-		
-		
+
+
 		//		//TODO add the opt
 		//		JButton btnChooseTarget = new JButton("Choose target");
 		//		btnChooseTarget.addActionListener(new ActionListener() {
@@ -210,10 +235,26 @@ public class SlonGui {
 			}
 		});
 		JScrollPane scroll = new JScrollPane(table);		
-		scroll.setBorder(BorderFactory.createEmptyBorder());
+		scroll.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		scroll.setBackground(new Color(255, 255, 255));
+		scroll.setBorder(new EmptyBorder(0, 0, 0, 0));
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
-		frame.pack();
 
+		WindowListener exitListener = new WindowAdapter() {
+
+			@Override
+			public void windowClosing(WindowEvent e) {
+				if (unsavedChanges) {
+					showSaveOptionDialog();
+					System.exit(0);
+				} else {
+					System.exit(0);
+				}
+			}
+		};
+		frame.addWindowListener(exitListener);
+
+		frame.pack();
 	}
 
 	/**
@@ -258,6 +299,11 @@ public class SlonGui {
 	}
 
 	private void saveTranslation() {
+		try {
+			table.getCellEditor().stopCellEditing();
+		} catch (Exception e) {
+			// do nothing it is OK if nothing is edited, so cell editing can't be stopped
+		}
 		// get the new translations
 		ListIterator<Paragraph> iteratorP = paragraphs.listIterator();
 		Paragraph par = iteratorP.next();
@@ -394,6 +440,12 @@ public class SlonGui {
 				options[0]);
 		if (n == 0) {
 			saveTranslation();
+		} else if (n == 1) {
+			try {
+				table.getCellEditor().stopCellEditing();
+			} catch (Exception e) {
+				// do nothing it is OK if nothing is edited, so cell editing can't be stopped
+			}
 		}
 	}
 

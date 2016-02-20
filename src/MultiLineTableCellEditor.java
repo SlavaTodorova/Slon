@@ -103,15 +103,20 @@ public class MultiLineTableCellEditor extends AbstractCellEditor implements Tabl
 	public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column){
 		String text;
 		if (value != null) {
-			// add indentation to every first line
-			text = indentation.indent(value.toString());
+			if (column == 2) {
+				// for comments, don't indent
+				text = value.toString();
+			} else {
+				// for source and target columns, add indentation to every first line
+				text = indentation.indent(value.toString());
+			}
 		} else {
-			text = indentation.INDENT;
+			text = ""; // TODO Check if INDENT is needed.
 		}
 		textArea.setText(text);
 		return textArea;
 	}
-	
+
 
 
 }
