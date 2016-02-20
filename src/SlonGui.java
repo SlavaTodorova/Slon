@@ -1,4 +1,6 @@
 import java.awt.EventQueue;
+import java.awt.FlowLayout;
+import java.awt.LayoutManager;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
@@ -8,6 +10,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 
 import java.io.BufferedReader;
@@ -41,11 +44,13 @@ public class SlonGui {
 	private JFrame frame;
 	private JTable table;
 
+	private JButton btnSave;
+
 	private File sourceFile;
 	private File translationFile;
 	private LinkedList<Paragraph> paragraphs;
-	
-	private int unsavedChanges; // 0 if no unsaved changes, < 0 if the user stubernly hits the "save" button anyway.
+
+	private boolean unsavedChanges; // if there are unsaved changes
 
 	/**
 	 * Launch the application.
@@ -83,10 +88,81 @@ public class SlonGui {
 		sourceFile = null;
 		translationFile = null;
 		paragraphs = null;
-		unsavedChanges = 0;
-		
-		JPanel controlPanel = new JPanel();
+		unsavedChanges = false;
+
+		JPanel controlPanel = new JPanel((LayoutManager) new BorderLayout());
+		JPanel actionsPanel = new JPanel((LayoutManager) new FlowLayout(FlowLayout.LEFT));
+		controlPanel.add(actionsPanel, BorderLayout.WEST);
 		frame.getContentPane().add(controlPanel, BorderLayout.NORTH);
+		btnSave = new JButton("Save");
+		btnSave.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				// write updated translation
+				saveTranslation();
+			}
+		});
+		btnSave.setEnabled(false);
+		actionsPanel.add(btnSave);
+
+		JButton btnChooseSource = new JButton("Choose source");
+		btnChooseSource.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				// reset the instance variables and all that
+				// TODO here is a good place for an alert asking for saving the current translations
+				if (unsavedChanges) {
+					showSaveOptionDialog();
+				}
+				clean();
+
+				JFileChooser chooser = new JFileChooser();
+				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
+
+				int result = chooser.showOpenDialog(null);
+				if (result == JFileChooser.APPROVE_OPTION) {
+					getCorrectFile(chooser.getSelectedFile(), chooser);
+					if (translationFile != null) {
+						// read translation in progress
+						loadOldTranslation(translationFile);
+					} else if (sourceFile != null) {
+						// read source for new translation
+						loadNewTranslation(sourceFile);
+					}
+				}
+			}
+
+		});
+		actionsPanel.add(btnChooseSource);
+		
+		JPanel helpPanel = new JPanel((LayoutManager) new FlowLayout(FlowLayout.RIGHT));
+		controlPanel.add(helpPanel, BorderLayout.EAST);
+		JButton btnHelp = new JButton("Help");
+		btnHelp.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				Help help = new Help();
+				JTextArea helpTextArea = new JTextArea(20, 60);
+				helpTextArea.setText(help.getBasic());
+				helpTextArea.setLineWrap(true);
+				helpTextArea.setWrapStyleWord(true);
+				helpTextArea.setEditable(false);
+				JScrollPane scrollPane = new JScrollPane(helpTextArea);
+				JOptionPane.showMessageDialog(null, scrollPane);
+			}
+		});
+		helpPanel.add(btnHelp);
+		
+		
+		//		//TODO add the opt
+		//		JButton btnChooseTarget = new JButton("Choose target");
+		//		btnChooseTarget.addActionListener(new ActionListener() {
+		//			public void actionPerformed(ActionEvent arg0) {
+		//				JFileChooser chooser = new JFileChooser();
+		//				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
+		//			}
+		//
+		//		});
+		//		btnChooseTarget.setEnabled(false);
+		//		controlPanel.add(btnChooseTarget);
 
 		String[] columnNames = {"Source", "Target", "Comments"};
 		Object[][] data = {{}};
@@ -121,14 +197,15 @@ public class SlonGui {
 				}
 				table.setRowSelectionInterval(row, row);
 			}
-			
+
 		});
 		table.getModel().addTableModelListener(new TableModelListener() {	
 			@Override
 			public void tableChanged(TableModelEvent e) {
 				int col = e.getColumn();
 				if (col > 0) {
-					unsavedChanges = 1;
+					unsavedChanges = true;
+					btnSave.setEnabled(true);
 				}
 			}
 		});
@@ -137,66 +214,8 @@ public class SlonGui {
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
 		frame.pack();
 
-		JButton btnSave = new JButton("Save");
-		btnSave.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				if (unsavedChanges > 0) {
-					// write updated translation
-					saveTranslation();
-				} else {
-					if (unsavedChanges == -3) {
-						JOptionPane.showMessageDialog(null, "There are no changes to be saved.\nChanges only take effect once the segment is closed.");
-					} else {
-						unsavedChanges--;
-					}
-				}
-			}
-		});
-		controlPanel.add(btnSave);
-
-		JButton btnChooseSource = new JButton("Choose source");
-		btnChooseSource.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				// reset the instance variables and all that
-				// TODO here is a good place for an alert asking for saving the current translations
-				if (unsavedChanges > 0) {
-					showSaveOptionDialog();
-				}
-				clean();
-
-				JFileChooser chooser = new JFileChooser();
-				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
-
-				int result = chooser.showOpenDialog(null);
-				if (result == JFileChooser.APPROVE_OPTION) {
-					getCorrectFile(chooser.getSelectedFile(), chooser);
-					if (translationFile != null) {
-						// read translation in progress
-						loadOldTranslation(translationFile);
-					} else if (sourceFile != null) {
-						// read source for new translation
-						loadNewTranslation(sourceFile);
-					}
-				}
-			}
-
-		});
-		controlPanel.add(btnChooseSource);
-		
-//		//TODO add the opt
-//		JButton btnChooseTarget = new JButton("Choose target");
-//		btnChooseTarget.addActionListener(new ActionListener() {
-//			public void actionPerformed(ActionEvent arg0) {
-//				JFileChooser chooser = new JFileChooser();
-//				chooser.setCurrentDirectory(new File(System.getProperty("user.home")+"/work/TransIt/Slon"));
-//			}
-//
-//		});
-//		btnChooseTarget.setEnabled(false);
-//		controlPanel.add(btnChooseTarget);
-
 	}
-	
+
 	/**
 	 * Loads translation from a .slon file
 	 * Or reads a monolingual source file, if no translation is available yet
@@ -270,7 +289,8 @@ public class SlonGui {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		unsavedChanges = 0;
+		unsavedChanges = false;
+		btnSave.setEnabled(false);
 	}
 
 
@@ -385,7 +405,7 @@ public class SlonGui {
 		String sourceText;
 		String targetText;
 		String comment;
-		
+
 		while (iteratorP.hasNext()) {
 			Paragraph par = iteratorP.next();
 			iteratorS = par.getSegments().listIterator();
@@ -397,7 +417,7 @@ public class SlonGui {
 				tblModel.addRow(new Object[] {sourceText, targetText, comment});
 			}
 		}
-		
+
 	}
 
 	private void clean() {
@@ -439,24 +459,24 @@ public class SlonGui {
 				sourceFile = possFile;
 			}
 		}
-			//		// TODO See if it is meaningful to allow loading of targets as sources
-			//		if (fileName.endsWith(".translated.txt")) {
-			//			Object[] options = {"Load as source", "Load as target"};
-			//			int n = JOptionPane.showOptionDialog(null,
-			//					"You have selected a file containing translation of another file.\n" +
-			//					"Would you like to open this file as source or as target text of your translation?",
-			//					"Choosing if to load a target of a previous translation as source.",
-			//					JOptionPane.YES_NO_OPTION,
-			//					JOptionPane.QUESTION_MESSAGE,
-			//					null,
-			//					options,
-			//					options[1]);
-			//			if (n == 0) {
-			//				return f; // as source
-			//			} else if (n == 1) {
-			//				fileName = fileName.substring(0, fileName.length()-15) + ".txt";
-			//				return new File(fileName);
-			//			}
-			//		}
+		//		// TODO See if it is meaningful to allow loading of targets as sources
+		//		if (fileName.endsWith(".translated.txt")) {
+		//			Object[] options = {"Load as source", "Load as target"};
+		//			int n = JOptionPane.showOptionDialog(null,
+		//					"You have selected a file containing translation of another file.\n" +
+		//					"Would you like to open this file as source or as target text of your translation?",
+		//					"Choosing if to load a target of a previous translation as source.",
+		//					JOptionPane.YES_NO_OPTION,
+		//					JOptionPane.QUESTION_MESSAGE,
+		//					null,
+		//					options,
+		//					options[1]);
+		//			if (n == 0) {
+		//				return f; // as source
+		//			} else if (n == 1) {
+		//				fileName = fileName.substring(0, fileName.length()-15) + ".txt";
+		//				return new File(fileName);
+		//			}
+		//		}
 	}
 }

@@ -17,6 +17,10 @@ public class Indentation {
 		}
 		return indentedText;
 	}
+	
+	public String removeIndentation(String text) {
+		return text.replace("\t", "");
+	}
 
 }
 

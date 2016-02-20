@@ -2,6 +2,7 @@
  * From http://blog.botunge.dk/post/2009/10/09/JTable-multiline-cell-renderer.aspx
  */
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.ArrayList;
@@ -17,11 +18,11 @@ import javax.swing.table.TableCellRenderer;
  */
 public class MultiLineTableCellRenderer extends JTextArea implements TableCellRenderer {
 	private static final long serialVersionUID = 1L;
-	
+
 	private ArrayList<ArrayList<Integer>> rowColHeight = new ArrayList<ArrayList<Integer>>();
-	
+
 	private Indentation indentation = new Indentation();
-	
+
 	public MultiLineTableCellRenderer() {
 		setLineWrap(true);
 		setWrapStyleWord(true);
@@ -31,27 +32,55 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 	public Component getTableCellRendererComponent(
 			JTable table, Object value, boolean isSelected, boolean hasFocus,
 			int row, int column) {
-		if (isSelected) {
-			setForeground(table.getSelectionForeground());
-			setBackground(table.getSelectionBackground());
-		} else {
-			setForeground(table.getForeground());
-			setBackground(table.getBackground());
-		}
-		setFont(table.getFont());
-		if (hasFocus) {
-			setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
-			if (table.isCellEditable(row, column)) {
-				setForeground(UIManager.getColor("Table.focusCellForeground"));
-				setBackground(UIManager.getColor("Table.focusCellBackground"));
+		// The coments column
+		if (column == 2) {
+			if (isSelected) {
+				setForeground(Color.GRAY);
+				// the background shouldn't be like the source column's
+				setBackground(UIManager.getColor("Table.focusCellBackground")); 
+			} else {
+				setForeground(Color.GRAY);
+				setBackground(table.getBackground());
 			}
+			setFont(table.getFont());
+			if (hasFocus) {
+				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+				if (table.isCellEditable(row, column)) {
+					setForeground(Color.GRAY);
+					setBackground(UIManager.getColor("Table.focusCellBackground"));
+				}
+			} else {
+				setBorder(new EmptyBorder(1, 2, 1, 2));
+			}
+			if (value != null) {
+				setText(value.toString());
+			} else {
+				setText("");
+			}
+			// the source and target columns
 		} else {
-			setBorder(new EmptyBorder(1, 2, 1, 2));
-		}
-		if (value != null) {
-			setText(indentation.indent(value.toString()));
-		} else {
-			setText("");
+			if (isSelected) {
+				setForeground(table.getSelectionForeground());
+				setBackground(table.getSelectionBackground());
+			} else {
+				setForeground(table.getForeground());
+				setBackground(table.getBackground());
+			}
+			setFont(table.getFont());
+			if (hasFocus) {
+				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+				if (table.isCellEditable(row, column)) {
+					setForeground(UIManager.getColor("Table.focusCellForeground"));
+					setBackground(UIManager.getColor("Table.focusCellBackground"));
+				}
+			} else {
+				setBorder(new EmptyBorder(1, 2, 1, 2));
+			}
+			if (value != null) {
+				setText(indentation.indent(value.toString()));
+			} else {
+				setText("");
+			}
 		}
 		adjustRowHeight(table, row, column);
 		return this;
