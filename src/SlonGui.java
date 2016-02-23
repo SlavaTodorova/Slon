@@ -264,7 +264,7 @@ public class SlonGui {
 	 */
 	private void loadOldTranslation(File f) {		
 		try {
-			paragraphs = deserializeAll(f.getName());
+			paragraphs = deserializeAll(f.getAbsolutePath());
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
 		}
@@ -277,7 +277,7 @@ public class SlonGui {
 	 */
 	private void loadNewTranslation(File f) {		
 		try {
-			paragraphs = readSource(f.getName());
+			paragraphs = readSource(f.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -285,14 +285,14 @@ public class SlonGui {
 	}
 
 	private String getSerFileName() {
-		String fullName = sourceFile.getName();
+		String fullName = sourceFile.getAbsolutePath();
 		String stem = fullName.substring(0, fullName.length()-3); // without "txt"
 		String serObjFile = stem + "slon";
 		return serObjFile;
 	}
 
 	private String getTarFileName() {
-		String fullName = sourceFile.getName();
+		String fullName = sourceFile.getAbsolutePath();
 		String stem = fullName.substring(0, fullName.length()-3); // without "txt"
 		String targetFile = stem + "translated.txt";
 		return targetFile;
@@ -444,8 +444,10 @@ public class SlonGui {
 			try {
 				table.getCellEditor().stopCellEditing();
 			} catch (Exception e) {
-				// do nothing it is OK if nothing is edited, so cell editing can't be stopped
+				// do nothing - it is OK if nothing is edited and cell editing can't be stopped
 			}
+			btnSave.setEnabled(false);
+			unsavedChanges = false;
 		}
 	}
 
@@ -488,13 +490,13 @@ public class SlonGui {
 	}
 
 	private void getCorrectFile(File f, JFileChooser chooser) {
-		String fileName = f.getName();
+		String fileName = f.getAbsolutePath();
 		while (!fileName.endsWith(".txt") && !fileName.endsWith(".slon")) {
 			JOptionPane.showMessageDialog(null, "Please load a \".txt\" or a \".slon\" file.");
 			int result = chooser.showOpenDialog(null);
 			if (result == JFileChooser.APPROVE_OPTION) {
 				f = chooser.getSelectedFile();
-				fileName = f.getName();
+				fileName = f.getAbsolutePath();
 				getCorrectFile(f, chooser);
 			}
 		}
