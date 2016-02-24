@@ -1,4 +1,4 @@
-/*
+/**
  * From http://www.java2s.com/Code/Java/Swing-Components/MultiLineCellExample.htm
  * Doesn't really work actually.
  */

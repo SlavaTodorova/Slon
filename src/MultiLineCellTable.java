@@ -1,3 +1,9 @@
+/**
+ * Extension of the JTable class. Handles multi-line cells.
+ * 
+ * Taken from somewhere. Don't remember from where.
+ */
+
 import java.applet.Applet;
 import java.awt.Component;
 import java.awt.Dimension;

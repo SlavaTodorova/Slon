@@ -1,5 +1,6 @@
-/*
- * From http://blog.botunge.dk/post/2009/10/09/JTable-multiline-cell-renderer.aspx
+/**
+ * Modified from 
+ * http://blog.botunge.dk/post/2009/10/09/JTable-multiline-cell-renderer.aspx
  */
 
 import java.awt.Color;
@@ -16,10 +17,12 @@ import javax.swing.table.TableCellRenderer;
 /**
  * Multiline Table Cell Renderer.
  */
-public class MultiLineTableCellRenderer extends JTextArea implements TableCellRenderer {
+public class MultiLineTableCellRenderer
+							extends JTextArea implements TableCellRenderer {
 	private static final long serialVersionUID = 1L;
 
-	private ArrayList<ArrayList<Integer>> rowColHeight = new ArrayList<ArrayList<Integer>>();
+	private ArrayList<ArrayList<Integer>> rowColHeight = 
+										new ArrayList<ArrayList<Integer>>();
 
 	private Indentation indentation = new Indentation();
 
@@ -44,10 +47,12 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 			}
 			setFont(table.getFont());
 			if (hasFocus) {
-				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+				setBorder(
+						UIManager.getBorder("Table.focusCellHighlightBorder"));
 				if (table.isCellEditable(row, column)) {
 					setForeground(Color.GRAY);
-					setBackground(UIManager.getColor("Table.focusCellBackground"));
+					setBackground(
+							UIManager.getColor("Table.focusCellBackground"));
 				}
 			} else {
 				setBorder(new EmptyBorder(1, 2, 1, 2));
@@ -57,7 +62,7 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 			} else {
 				setText("");
 			}
-			// the source and target columns
+			/* the source and target columns */
 		} else {
 			if (isSelected) {
 				setForeground(table.getSelectionForeground());
@@ -68,10 +73,13 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 			}
 			setFont(table.getFont());
 			if (hasFocus) {
-				setBorder(UIManager.getBorder("Table.focusCellHighlightBorder"));
+				setBorder(
+						UIManager.getBorder("Table.focusCellHighlightBorder"));
 				if (table.isCellEditable(row, column)) {
-					setForeground(UIManager.getColor("Table.focusCellForeground"));
-					setBackground(UIManager.getColor("Table.focusCellBackground"));
+					setForeground(
+							UIManager.getColor("Table.focusCellForeground"));
+					setBackground(
+							UIManager.getColor("Table.focusCellBackground"));
 				}
 			} else {
 				setBorder(new EmptyBorder(1, 2, 1, 2));
@@ -87,15 +95,19 @@ public class MultiLineTableCellRenderer extends JTextArea implements TableCellRe
 	}
 
 	/**
-	 * Calculate the new preferred height for a given row, and sets the height on the table.
+	 * Calculates the new preferred height for a given row,
+	 * and sets the height on the table.
 	 */
 	private void adjustRowHeight(JTable table, int row, int column) {
-		//The trick to get this to work properly is to set the width of the column to the 
-		//textarea. The reason for this is that getPreferredSize(), without a width tries 
-		//to place all the text in one line. By setting the size with the with of the column, 
-		//getPreferredSize() returnes the proper height which the row should have in
-		//order to make room for the text.
-		int cWidth = table.getTableHeader().getColumnModel().getColumn(column).getWidth();
+		/* The trick to get this to work properly is to set the width 
+		 * of the column to the textarea. The reason for this is that 
+		 * getPreferredSize(), without a width tries to place all the text 
+		 * in one line. By setting the size with the with of the column,
+		 * getPreferredSize() returns the proper height 
+		 * which the row should have in order to make room for the text.
+		 */
+		int cWidth = table.
+				getTableHeader().getColumnModel().getColumn(column).getWidth();
 		setSize(new Dimension(cWidth, 1000));
 		int prefH = getPreferredSize().height;
 		while (rowColHeight.size() <= row) {

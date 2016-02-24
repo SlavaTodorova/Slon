@@ -1,4 +1,4 @@
-/*
+/**
  * Class Segment
  * Designed to represent a segment of a bilingual corpus.
  */

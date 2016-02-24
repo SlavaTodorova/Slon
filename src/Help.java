@@ -1,4 +1,9 @@
-
+/**
+ * This class manages the help information
+ * 
+ * @author velislava
+ *
+ */
 public class Help {
 	
 	private String basic = "To start a translation, open a source text file in \".txt\" format.\n\n"

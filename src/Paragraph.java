@@ -1,3 +1,11 @@
+/**
+ * Represents a paragraph of the source text together with its translation.
+ * The translated counterpart can have more than one new lines, i.e. 
+ * more than one actual paragraphs. 
+ * The source text is always exactly one paragraph.
+ * 
+ * @author Slava Todorova
+ */
 import java.util.LinkedList;
 import java.util.ListIterator;
 
@@ -47,7 +55,8 @@ public class Paragraph implements java.io.Serializable {
 	 * Merging segments
 	 */
 	public void merge(Segment firstSegment, Segment lastSegment) {
-		ListIterator<Segment> iterator = this.segments.listIterator(this.segments.indexOf(firstSegment));
+		ListIterator<Segment> iterator = this.segments.listIterator(
+										this.segments.indexOf(firstSegment));
 		String mergedSource = "";
 		String mergedTarget = "";
 		String newSeparator = "";
@@ -56,8 +65,10 @@ public class Paragraph implements java.io.Serializable {
 		while (iterator.hasNext()) {
 			if (! current.equals(lastSegment)) {
 				current = iterator.next();
-				mergedSource += currentSeparator + current.getSource().getText();
-				mergedTarget += " " + current.getTarget().getText(); // let the translator correct the separator
+				mergedSource += currentSeparator 
+											+ current.getSource().getText();
+				mergedTarget += " " + current.getTarget().getText(); 
+				// let the translator correct the separator
 				currentSeparator = current.getSource().getSeparator();
 			}
 		}
@@ -69,7 +80,7 @@ public class Paragraph implements java.io.Serializable {
 		firstSegment.setTarget(trg);
 		// remove the old singular segments
 		while (iterator.hasPrevious()) {
-			if (! current.equals(firstSegment)) { // except the first, the merged one
+			if (! current.equals(firstSegment)) { // except the first one
 				this.segments.remove(current);
 			}
 			current = iterator.previous();

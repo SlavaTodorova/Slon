@@ -1,5 +1,6 @@
-/*
- * The class SegmentPart describes the components (source and target) of a segment.
+/**
+ * The class SegmentComponent describes the components (source and target)
+ * of a segment.
  */
 
 import java.io.Serializable;
