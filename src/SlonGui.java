@@ -13,6 +13,7 @@ import java.awt.GridLayout;
 import java.awt.LayoutManager;
 
 import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
 import javax.swing.JComponent;
@@ -542,36 +543,36 @@ public class SlonGui {
 
 				/* Create the tabbed panel */
 				JTabbedPane tabbedPane = new JTabbedPane();
-				
+
 				JPanel panel1 = new JPanel();
 				panel1.add(makeTextArea(help.about));
-				
+
 				tabbedPane.addTab("About", null, panel1,
 						"About this editor");
 				tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
-				
+
 				JPanel panel2 = new JPanel();
 				panel2.add(makeTextArea(help.startNew));
-				
+
 				tabbedPane.addTab("Start a translation", null, panel2,
 						"How to start a new translation");
 				tabbedPane.setMnemonicAt(1, KeyEvent.VK_2);
 
 				JPanel panel3 = new JPanel();
 				panel3.add(makeTextArea(help.resumeOld));
-				
+
 				tabbedPane.addTab("Resume a translation", null, panel3,
 						"How to resume a translation in progress");
 				tabbedPane.setMnemonicAt(2, KeyEvent.VK_3);
 
 				JPanel panel4 = new JPanel();
 				panel4.add(makeTextArea(help.save));
-				
+
 				tabbedPane.addTab("Save a translation", null, panel4,
 						"How to save the current translation");
 				tabbedPane.setMnemonicAt(3, KeyEvent.VK_4);
 
-				
+
 				//JScrollPane scrollPane = new JScrollPane(helpTextArea);
 				JOptionPane.showMessageDialog(
 						null, tabbedPane, "SLON Help Page",
@@ -622,6 +623,7 @@ public class SlonGui {
 				String.class, new MultiLineTableCellRenderer());
 		table.setDefaultEditor(String.class, new MultiLineTableCellEditor());
 
+		/* Navigation from one cell to the next by pressing Enter*/
 		InputMap input = table.getInputMap(
 				JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap actions = table.getActionMap();
@@ -635,20 +637,38 @@ public class SlonGui {
 				if (row < table.getRowCount()-1) {
 					row += 1;
 				}
-				table.setRowSelectionInterval(row, row);
+				boolean noEdit = true;
+				try {
+					table.getCellEditor().stopCellEditing();
+					noEdit = false;
+				} catch (Exception e1) {
+					// do nothing, sometimes there just was no edit
+				}
+				if (noEdit) {
+					table.setRowSelectionInterval(row, row);
+				}
 			}
 
 		});
-		table.getModel().addTableModelListener(new TableModelListener() {	
-			@Override
-			public void tableChanged(TableModelEvent e) {
-				int col = e.getColumn();
-				if (col > 0) {
-					unsavedChanges = true;
-					btnSave.setEnabled(true);
+
+		/* Listener for changes in the table content */ 
+		Action action = new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+			public void actionPerformed(ActionEvent e)
+			{
+				TableCellListener tcl = (TableCellListener)e.getSource();
+				if (tcl.getColumn() > 0) {
+					if (! tcl.getOldValue().equals(tcl.getNewValue())) {
+						unsavedChanges = true;
+						btnSave.setEnabled(true);
+					}
 				}
 			}
-		});
+		};
+		TableCellListener tcl = new TableCellListener(table, action);
+		table.addPropertyChangeListener(tcl);
+
+		/* Put the table in a scroll pane */ 
 		JScrollPane scroll = new JScrollPane(table);
 		scroll.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		scroll.setBackground(new Color(255, 255, 255));
@@ -676,7 +696,7 @@ public class SlonGui {
 		};
 		return exitListener;
 	}
-	
+
 	/** 
 	 * Creates simple JTextAreas for the tabs in the help page
 	 * @param text The text to be displayed
