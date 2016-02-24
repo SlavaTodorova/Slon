@@ -175,12 +175,31 @@ public class SlonGui {
 	 * @return a name for the target file
 	 */
 	private String getTarFileName() {
-		String fullName = translationFile.getAbsolutePath();
-		String stem = fullName.substring(0, fullName.length()-4); // - "slon"
+		String fullName;
+		String stem;
+		if (translationFile != null) {
+			fullName = translationFile.getAbsolutePath();
+			stem = fullName.substring(0, fullName.length()-4); // - "slon"
+		} else {
+			fullName = sourceFile.getAbsolutePath();
+			stem = fullName.substring(0, fullName.length()-3); // - "txt"
+		}
 		String targetFile = stem + "translated.txt";
 		return targetFile;
 	}
 
+	/**
+	 * Gets a name for the translation file, once the source file is known.
+	 * I.e. removes the "txt" extension and appends "slon"
+	 * 
+	 * @return a name for the target file
+	 */
+	private String getTranslationFileName() {
+		String fullName = sourceFile.getAbsolutePath();
+		String stem = fullName.substring(0, fullName.length()-3); // - "txt"
+		String translationFileName = stem + "slon";
+		return translationFileName;
+	}
 	/**
 	 * Saves the translation in two steps. 
 	 * First, the all the paragraph objects are serialized
@@ -217,7 +236,11 @@ public class SlonGui {
 		}
 		/* serialization */
 		try {
-			serializeAll(translationFile.getAbsolutePath()); // all paragraphs
+			if (translationFile != null) {
+				serializeAll(translationFile.getAbsolutePath()); // all paragraphs
+			} else {
+				serializeAll(getTranslationFileName());
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		} 
@@ -418,7 +441,9 @@ public class SlonGui {
 			sourceFile = f;
 			File theTranslationFile = new File(
 					fileName.substring(0, fileName.length()-3)+"slon");
-			translationFile = theTranslationFile;
+			if (theTranslationFile.exists()) {
+				translationFile = theTranslationFile;
+			}
 		} else { // ".slon"
 			translationFile = f;
 			File eventualSourceFile = new File(

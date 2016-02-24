@@ -44,7 +44,8 @@ public class Help {
 			+ "to the source text and the comments you have made.\n\n"
 			+ "The plain text file with your translation can be opened"
 			+ " with any text editor suited to open \".txt\" files.\n"
-			+ "The \".slon\" file can only be opened with this program.";
+			+ "The \".slon\" file can only be opened with this program.\n\n"
+			+ "Caution! There is no autosave in this version of the editor!";
 	
 	public Help() {
 	}
