@@ -9,14 +9,19 @@
 
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.LayoutManager;
+
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
@@ -40,6 +45,7 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
@@ -88,30 +94,30 @@ public class SlonGui {
 			}
 		});
 	}
-	
+
 	/**
 	 * Creates the application.
 	 */
 	public SlonGui() {
-		
+
 		sourceFile = null;
 		translationFile = null;
 		paragraphs = null;
 		unsavedChanges = false;
-		
+
 		frame = createFrame();
-		
+
 		/* Control Panel */
 		JPanel controlPanel = new JPanel((LayoutManager) new BorderLayout());
 		controlPanel.setBackground(new Color(70, 130, 180));
-		
+
 		/* Actions Panel */
 		JPanel actionsPanel = new JPanel(
 				(LayoutManager) new FlowLayout(FlowLayout.LEFT));
 		actionsPanel.setBackground(new Color(70, 130, 180));
 		controlPanel.add(actionsPanel, BorderLayout.WEST);
 		frame.getContentPane().add(controlPanel, BorderLayout.NORTH);
-		
+
 		btnSave = createButtonSave();
 		actionsPanel.add(btnSave);
 
@@ -123,7 +129,7 @@ public class SlonGui {
 				(LayoutManager) new FlowLayout(FlowLayout.RIGHT));
 		helpPanel.setBackground(new Color(70, 130, 180));
 		controlPanel.add(helpPanel, BorderLayout.EAST);
-		
+
 		JButton btnHelp = createButtonHelp();
 		helpPanel.add(btnHelp);
 
@@ -137,7 +143,7 @@ public class SlonGui {
 		frame.pack();
 	}
 
-	
+
 	/**
 	 * Loads translation from a .slon file
 	 * Or reads a monolingual source file, if no translation is available yet
@@ -234,7 +240,7 @@ public class SlonGui {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		/* resetting some variables */
 		unsavedChanges = false;
 		btnSave.setEnabled(false);
@@ -446,7 +452,7 @@ public class SlonGui {
 			}
 		}
 	}
-	
+
 	/**
 	 * Creates the main frame
 	 * 
@@ -456,10 +462,10 @@ public class SlonGui {
 		JFrame theFrame = new JFrame("SLON: Very Good Translation Editor");
 		theFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
 		theFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
+
 		return theFrame;
 	}
-	
+
 	/**
 	 * Creates the "Save" button
 	 * 
@@ -479,7 +485,7 @@ public class SlonGui {
 		save.setEnabled(false);
 		return save;
 	}
-	
+
 	/**
 	 * Creates the "Choose source" button
 	 * which allows the user to load a source text file
@@ -519,7 +525,7 @@ public class SlonGui {
 		});
 		return btnChooseSource;
 	}
-	
+
 	/**
 	 * Creates the "Help" button
 	 * 
@@ -533,19 +539,60 @@ public class SlonGui {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				Help help = new Help();
-				JTextArea helpTextArea = new JTextArea(20, 60);
-				helpTextArea.setText(help.getBasic());
-				helpTextArea.setLineWrap(true);
-				helpTextArea.setWrapStyleWord(true);
-				helpTextArea.setEditable(false);
-				helpTextArea.setOpaque(false);
+
+				/* Create the tabbed panel */
+				JTabbedPane tabbedPane = new JTabbedPane();
+				
+				JPanel panel1 = new JPanel();
+				panel1.add(makeTextArea(help.about));
+				
+				tabbedPane.addTab("About", null, panel1,
+						"About this editor");
+				tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
+				
+				JPanel panel2 = new JPanel();
+				panel2.add(makeTextArea(help.startNew));
+				
+				tabbedPane.addTab("Start a translation", null, panel2,
+						"How to start a new translation");
+				tabbedPane.setMnemonicAt(1, KeyEvent.VK_2);
+
+				JPanel panel3 = new JPanel();
+				panel3.add(makeTextArea(help.resumeOld));
+				
+				tabbedPane.addTab("Resume a translation", null, panel3,
+						"How to resume a translation in progress");
+				tabbedPane.setMnemonicAt(2, KeyEvent.VK_3);
+
+				JPanel panel4 = new JPanel();
+				panel4.add(makeTextArea(help.save));
+				
+				tabbedPane.addTab("Save a translation", null, panel4,
+						"How to save the current translation");
+				tabbedPane.setMnemonicAt(3, KeyEvent.VK_4);
+
+				
 				//JScrollPane scrollPane = new JScrollPane(helpTextArea);
 				JOptionPane.showMessageDialog(
-						null, helpTextArea, "SLON Help Page",
-					    JOptionPane.INFORMATION_MESSAGE);
+						null, tabbedPane, "SLON Help Page",
+						JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
 		return btnHelp;
+	}
+
+	/**
+	 * From https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/uiswing/examples/components/TabbedPaneDemoProject/src/components/TabbedPaneDemo.java
+	 * @param text
+	 * @return
+	 */
+	protected JComponent makeTextPanel(String text) {
+		JPanel panel = new JPanel(false);
+		JLabel filler = new JLabel(text);
+		filler.setHorizontalAlignment(JLabel.CENTER);
+		panel.setLayout(new GridLayout(1, 1));
+		panel.add(filler);
+		return panel;
 	}
 
 	/**
@@ -574,7 +621,7 @@ public class SlonGui {
 		table.setDefaultRenderer(
 				String.class, new MultiLineTableCellRenderer());
 		table.setDefaultEditor(String.class, new MultiLineTableCellEditor());
-		
+
 		InputMap input = table.getInputMap(
 				JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap actions = table.getActionMap();
@@ -608,7 +655,7 @@ public class SlonGui {
 		scroll.setBorder(new EmptyBorder(0, 0, 0, 0));
 		return scroll;
 	}
-	
+
 	/**  
 	 * Creates a window listener so that on close the user is asked
 	 * if they want to save the unsaved changes.
@@ -628,5 +675,20 @@ public class SlonGui {
 			}
 		};
 		return exitListener;
+	}
+	
+	/** 
+	 * Creates simple JTextAreas for the tabs in the help page
+	 * @param text The text to be displayed
+	 * @return the JTextArea with the text inside
+	 */
+	private JTextArea makeTextArea(String text) {
+		JTextArea area = new JTextArea(15, 50);
+		area.setText(text);
+		area.setLineWrap(true);
+		area.setWrapStyleWord(true);
+		area.setEditable(false);
+		area.setOpaque(false);
+		return area;
 	}
 }
