@@ -9,17 +9,15 @@
 
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.LayoutManager;
 
+import javax.rmi.CORBA.Util;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -53,14 +51,13 @@ import java.awt.event.WindowListener;
 
 import javax.swing.JPanel;
 import javax.swing.JTable;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
 
 import java.awt.Color;
 import java.awt.Component;
 
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileFilter;
 
 import java.awt.Cursor;
 
@@ -172,26 +169,14 @@ public class SlonGui {
 	}
 
 	/**
-	 * Gets the file name of the translation file if the source file is known.
-	 * I.e. removes the "txt" extension and appends a "slon" one.
-	 * @return the name of the 
-	 */
-	private String getSerFileName() {
-		String fullName = sourceFile.getAbsolutePath();
-		String stem = fullName.substring(0, fullName.length()-3); //remove "txt"
-		String serObjFile = stem + "slon";
-		return serObjFile;
-	}
-
-	/**
-	 * Gets a name for the target file, once the source file is known.
-	 * I.e. removes the "txt" extension and appends "translated.txt"
+	 * Gets a name for the target file, once the translation file is known.
+	 * I.e. removes the "slon" extension and appends "translated.txt"
 	 * 
-	 * @return a name for the target files
+	 * @return a name for the target file
 	 */
 	private String getTarFileName() {
-		String fullName = sourceFile.getAbsolutePath();
-		String stem = fullName.substring(0, fullName.length()-3); //remove "txt"
+		String fullName = translationFile.getAbsolutePath();
+		String stem = fullName.substring(0, fullName.length()-4); // - "slon"
 		String targetFile = stem + "translated.txt";
 		return targetFile;
 	}
@@ -217,7 +202,8 @@ public class SlonGui {
 		Segment seg = iteratorS.next();
 		DefaultTableModel tbModel = (DefaultTableModel) table.getModel();
 		for (int i=0; i < paragraphs.size(); i++) {
-			seg.setTarget(new SegmentComponent(tbModel.getValueAt(i, 1).toString()));
+			seg.setTarget(
+					new SegmentComponent(tbModel.getValueAt(i, 1).toString()));
 			seg.setComment(tbModel.getValueAt(i, 2).toString());
 			if (! iteratorS.hasNext()) {
 				if (! iteratorP.hasNext()) {
@@ -231,7 +217,7 @@ public class SlonGui {
 		}
 		/* serialization */
 		try {
-			serializeAll(getSerFileName()); // serialize the paragraphs
+			serializeAll(translationFile.getAbsolutePath()); // all paragraphs
 		} catch (IOException e) {
 			e.printStackTrace();
 		} 
@@ -402,6 +388,7 @@ public class SlonGui {
 	 */
 	private void clean() {
 		sourceFile = null;
+		translationFile = null;
 		DefaultTableModel tbModel = (DefaultTableModel) table.getModel();
 		if (paragraphs != null) {
 			for (int i = paragraphs.size()-1; i >= 0; i--) {
@@ -426,30 +413,22 @@ public class SlonGui {
 	 */
 	private void getCorrectFile(File f, JFileChooser chooser) {
 		String fileName = f.getAbsolutePath();
-		// TODO Better add a filter for the file types!
-		while (!fileName.endsWith(".txt") && !fileName.endsWith(".slon")) {
-			JOptionPane.showMessageDialog(
-					null, "Please load a \".txt\" or a \".slon\" file.");
-			int result = chooser.showOpenDialog(null);
-			if (result == JFileChooser.APPROVE_OPTION) {
-				f = chooser.getSelectedFile();
-				fileName = f.getAbsolutePath();
-				getCorrectFile(f, chooser);
-			}
-		}
-		if (fileName.endsWith(".txt")) {
+		
+		if (Utils.getExtension(f).equals(Utils.txt)) {
 			sourceFile = f;
-			File possFile = new File(
+			File theTranslationFile = new File(
 					fileName.substring(0, fileName.length()-3)+"slon");
-			if (possFile.exists()) {
-				translationFile = possFile;
-			}
-		} else { // ends with ".slon"
+			translationFile = theTranslationFile;
+		} else { // ".slon"
 			translationFile = f;
-			File possFile = new File(
+			File eventualSourceFile = new File(
 					fileName.substring(0, fileName.length()-4)+"txt");
-			if (possFile.exists()) {
-				sourceFile = possFile;
+			if (eventualSourceFile.exists()) {
+				sourceFile = eventualSourceFile;
+			} else {
+				System.out.println("Initial source file in plain text format "
+						+ "not found. But the translation is safe.");
+				sourceFile = null;
 			}
 		}
 	}
@@ -509,7 +488,32 @@ public class SlonGui {
 				JFileChooser chooser = new JFileChooser();
 				chooser.setCurrentDirectory(
 						new File(System.getProperty("user.home")));
+				chooser.setFileFilter(new FileFilter() {
+					
+					@Override
+					public String getDescription() {
+						// TODO Auto-generated method stub
+						return ".txt and .slon";
+					}
+					
+					@Override
+					public boolean accept(File f) {
+					    if (f.isDirectory()) {
+					        return true;
+					    }
+					    String extension = Utils.getExtension(f);
+					    if (extension != null) {
+					        if (extension.equals(Utils.txt) ||
+					            extension.equals(Utils.slon)) {
+					                return true;
+					        } else {
+					            return false;
+					        }
+					    }
 
+					    return false;
+					}
+				});
 				int result = chooser.showOpenDialog(null);
 				if (result == JFileChooser.APPROVE_OPTION) {
 					getCorrectFile(chooser.getSelectedFile(), chooser);
@@ -580,20 +584,6 @@ public class SlonGui {
 			}
 		});
 		return btnHelp;
-	}
-
-	/**
-	 * From https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/uiswing/examples/components/TabbedPaneDemoProject/src/components/TabbedPaneDemo.java
-	 * @param text
-	 * @return
-	 */
-	protected JComponent makeTextPanel(String text) {
-		JPanel panel = new JPanel(false);
-		JLabel filler = new JLabel(text);
-		filler.setHorizontalAlignment(JLabel.CENTER);
-		panel.setLayout(new GridLayout(1, 1));
-		panel.add(filler);
-		return panel;
 	}
 
 	/**
