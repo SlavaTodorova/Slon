@@ -11,7 +11,6 @@ import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.LayoutManager;
 
-import javax.rmi.CORBA.Util;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
@@ -436,6 +435,7 @@ public class SlonGui {
 	 */
 	private void getCorrectFile(File f, JFileChooser chooser) {
 		String fileName = f.getAbsolutePath();
+		int chooserResult;
 		
 		if (Utils.getExtension(f).equals(Utils.txt)) {
 			sourceFile = f;
@@ -444,7 +444,7 @@ public class SlonGui {
 			if (theTranslationFile.exists()) {
 				translationFile = theTranslationFile;
 			}
-		} else { // ".slon"
+		} else if (Utils.getExtension(f).equals(Utils.slon)){
 			translationFile = f;
 			File eventualSourceFile = new File(
 					fileName.substring(0, fileName.length()-4)+"txt");
@@ -455,7 +455,16 @@ public class SlonGui {
 						+ "not found. But the translation is safe.");
 				sourceFile = null;
 			}
+		} else {
+			JOptionPane.showMessageDialog(null, "Invalid input file format!\n"
+					+ "Only files with extensions \".txt\" and \".slon\" "
+					+ "are accepted.");
+			chooserResult = chooser.showOpenDialog(null);
+			if (chooserResult == JFileChooser.APPROVE_OPTION) {
+				getCorrectFile(chooser.getSelectedFile(), chooser);
+			}
 		}
+		
 	}
 
 	/**
