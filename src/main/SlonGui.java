@@ -45,7 +45,6 @@ import java.awt.event.WindowListener;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
-
 import java.awt.Color;
 import java.awt.Component;
 
@@ -224,8 +223,7 @@ public class SlonGui {
 		Segment seg = iteratorS.next();
 		DefaultTableModel tbModel = (DefaultTableModel) table.getModel();
 		for (int i=0; i < paragraphs.size(); i++) {
-			seg.setTarget(
-					new SegmentComponent(tbModel.getValueAt(i, 1).toString()));
+			seg.getTarget().setText(tbModel.getValueAt(i, 1).toString());
 			seg.setComment(tbModel.getValueAt(i, 2).toString());
 			if (! iteratorS.hasNext()) {
 				if (! iteratorP.hasNext()) {
@@ -275,9 +273,16 @@ public class SlonGui {
 			in = new BufferedReader(new FileReader(srcFileName));
 			String line;
 			Paragraph par;
+			String sep = "";
 			while ((line = in.readLine()) != null) {
-				par = new Paragraph(new Segment(new SegmentComponent(line)));
+				while (line.trim().equals("")) {
+					sep += "\n"; // empty paragraph
+					line = in.readLine();
+				}
+				par = new Paragraph(new Segment(new SegmentComponent(line, sep),
+						new SegmentComponent("", sep)));
 				paragraphs.add(par);
+				sep = "";
 			}
 		} finally {
 			if (in != null) {
@@ -298,12 +303,14 @@ public class SlonGui {
 		BufferedWriter bw = new BufferedWriter(fw);
 		ListIterator<Paragraph> iteratorP = paragraphs.listIterator();
 		ListIterator<Segment> iteratorS;
+		SegmentComponent target;
 		while (iteratorP.hasNext()) {
 			LinkedList<Segment> segments = iteratorP.next().getSegments();
 			iteratorS = segments.listIterator();
 			while (iteratorS.hasNext()) {
-				bw.write(iteratorS.next().getTarget().getText());
-				// TODO handle separators
+				target = iteratorS.next().getTarget();
+				bw.write(target.getSeparator());
+				bw.write(target.getText());
 			}
 			bw.write("\n"); // end of paragraph
 		}
@@ -439,7 +446,12 @@ public class SlonGui {
 	 */
 	private void getCorrectFile(File f, JFileChooser chooser) {
 		String fileName = f.getAbsolutePath();
-		int chooserResult;
+		
+		if (! f.exists()) {
+			JOptionPane.showMessageDialog(null, "File not found.");
+			rechoose(chooser);
+			return;
+		}
 		
 		if (Utils.getExtension(f).equals(Utils.txt)) {
 			sourceFile = f;
@@ -463,10 +475,7 @@ public class SlonGui {
 			JOptionPane.showMessageDialog(null, "Invalid input file format!\n"
 					+ "Only files with extensions \".txt\" and \".slon\" "
 					+ "are accepted.");
-			chooserResult = chooser.showOpenDialog(null);
-			if (chooserResult == JFileChooser.APPROVE_OPTION) {
-				getCorrectFile(chooser.getSelectedFile(), chooser);
-			}
+			rechoose(chooser);
 		}
 		
 	}
@@ -640,9 +649,8 @@ public class SlonGui {
 			public boolean isCellEditable(int row, int column) {
 				if (column == 0) {
 					return false;
-				} else {
-					return true;
 				}
+				return true;
 			}
 		};
 		table = new MultiLineCellTable(tbModel);
@@ -738,5 +746,16 @@ public class SlonGui {
 		area.setEditable(false);
 		area.setOpaque(false);
 		return area;
+	}
+	
+	/**
+	 * Opens new file chooser dialog and checks the selected file
+	 * @param chooser the JFileChooser to choose the new file with
+	 */
+	private void rechoose(JFileChooser chooser) {
+		int chooserResult = chooser.showOpenDialog(null);
+		if (chooserResult == JFileChooser.APPROVE_OPTION) {
+			getCorrectFile(chooser.getSelectedFile(), chooser);
+		}
 	}
 }

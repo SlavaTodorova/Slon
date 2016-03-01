@@ -12,7 +12,7 @@ public class SegmentComponent implements Serializable {
 	
 	private String language; // null if unknown
 	private String text; // the text of the segment
-	private String separator; // the separator between this segment and the next
+	private String separator; // separator btw. this segment and the previous
 
 	public SegmentComponent(String text, String separator, String lang) {
 		this.text = text;
