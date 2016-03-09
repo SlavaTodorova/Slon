@@ -36,7 +36,7 @@ public class MultiLineTableCellEditor
 	};
 
 	public MultiLineTableCellEditor(){
-		textArea.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+		textArea.setBorder(BorderFactory.createLineBorder(Color.GRAY));		
 		textArea.registerKeyboardAction(this
 				, KeyStroke.getKeyStroke("ENTER")
 				, JComponent.WHEN_FOCUSED);

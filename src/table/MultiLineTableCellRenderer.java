@@ -5,6 +5,7 @@ package table;
  */
 
 import java.awt.Color;
+
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.ArrayList;
@@ -28,6 +29,9 @@ public class MultiLineTableCellRenderer
 										new ArrayList<ArrayList<Integer>>();
 
 	private Indentation indentation = new Indentation();
+	
+	// TODO make it the same as in SlonGui;
+	private Color mainColor = new Color(38, 77, 115); 
 
 	public MultiLineTableCellRenderer() {
 		setLineWrap(true);
@@ -46,7 +50,7 @@ public class MultiLineTableCellRenderer
 				setBackground(UIManager.getColor("Table.focusCellBackground")); 
 			} else {
 				setForeground(Color.GRAY);
-				setBackground(table.getBackground());
+				setBackground(Color.WHITE);
 			}
 			setFont(table.getFont());
 			if (hasFocus) {
@@ -68,19 +72,18 @@ public class MultiLineTableCellRenderer
 			/* the source and target columns */
 		} else {
 			if (isSelected) {
-				setForeground(table.getSelectionForeground());
-				setBackground(table.getSelectionBackground());
-			} else {
 				setForeground(table.getForeground());
-				setBackground(table.getBackground());
+				setBackground(UIManager.getColor("Table.focusCellBackground"));
+			} else {
+				setForeground(mainColor);
+				setBackground(Color.WHITE);
 			}
 			setFont(table.getFont());
 			if (hasFocus) {
 				setBorder(
 						UIManager.getBorder("Table.focusCellHighlightBorder"));
 				if (table.isCellEditable(row, column)) {
-					setForeground(
-							UIManager.getColor("Table.focusCellForeground"));
+					setForeground(mainColor);
 					setBackground(
 							UIManager.getColor("Table.focusCellBackground"));
 				}

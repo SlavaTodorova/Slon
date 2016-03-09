@@ -4,19 +4,30 @@ package main;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.LayoutManager;
+import java.awt.MenuItem;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
+import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButton;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -44,7 +55,12 @@ import java.awt.event.WindowListener;
 
 import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
+
 import java.awt.Color;
 import java.awt.Component;
 
@@ -66,13 +82,16 @@ import java.awt.Cursor;
 public class SlonGui {
 
 	private JFrame frame;
-	private JTable table;
+	private static JTable table;
 
-	private JButton btnSave;
+	private static JButton btnSave;
+	private static JButton btnChooseSource;
 
 	private File sourceFile; // .txt
 	private File translationFile; // .slon
 	private LinkedList<Paragraph> paragraphs;
+
+	public Color mainColor; // TODO make it dependent on the user preferences
 
 	private boolean unsavedChanges; // true if there are unsaved changes
 
@@ -83,14 +102,9 @@ public class SlonGui {
 			throws IOException, ClassNotFoundException {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
-				try {
-					UIManager.setLookAndFeel(
-							UIManager.getSystemLookAndFeelClassName());
-					SlonGui window = new SlonGui();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				setChosenLookAndFeel("Nimbus");
+				SlonGui window = new SlonGui();
+				window.frame.setVisible(true);
 			}
 		});
 	}
@@ -105,33 +119,44 @@ public class SlonGui {
 		paragraphs = null;
 		unsavedChanges = false;
 
+		mainColor = new Color(57,105,138); // TODO allow for user preferences
+
 		frame = createFrame();
+
+		/* Menubar */
+		JMenuBar menu = createMenu();
 
 		/* Control Panel */
 		JPanel controlPanel = new JPanel((LayoutManager) new BorderLayout());
-		controlPanel.setBackground(new Color(70, 130, 180));
+		controlPanel.setBackground(mainColor);
 
-		/* Actions Panel */
+		/* Menu Bar */
+		controlPanel.add(menu, BorderLayout.NORTH);
+
+		/* Icon Panel */
 		JPanel actionsPanel = new JPanel(
 				(LayoutManager) new FlowLayout(FlowLayout.LEFT));
-		actionsPanel.setBackground(new Color(70, 130, 180));
-		controlPanel.add(actionsPanel, BorderLayout.WEST);
+		actionsPanel.setBackground(mainColor);
+		controlPanel.add(actionsPanel, BorderLayout.EAST);
 		frame.getContentPane().add(controlPanel, BorderLayout.NORTH);
 
 		btnSave = createButtonSave();
 		actionsPanel.add(btnSave);
+		// actionsPanel.add(btnSave);
 
-		JButton btnChooseSource = createButtonChooseSource();
+		btnChooseSource = createButtonChooseSource();
 		actionsPanel.add(btnChooseSource);
+		// actionsPanel.add(btnChooseSource);
 
 		/* Help Panel */ 
-		JPanel helpPanel = new JPanel(
-				(LayoutManager) new FlowLayout(FlowLayout.RIGHT));
-		helpPanel.setBackground(new Color(70, 130, 180));
-		controlPanel.add(helpPanel, BorderLayout.EAST);
+		//		JPanel helpPanel = new JPanel(
+		//				(LayoutManager) new FlowLayout(FlowLayout.RIGHT));
+		//		helpPanel.setBackground(mainColor);
+		//		controlPanel.add(helpPanel, BorderLayout.EAST);
 
 		JButton btnHelp = createButtonHelp();
-		helpPanel.add(btnHelp);
+		actionsPanel.add(btnHelp);
+		//helpPanel.add(btnHelp);
 
 		/* Table */
 		frame.getContentPane().add(createTable(), BorderLayout.CENTER);
@@ -141,6 +166,7 @@ public class SlonGui {
 
 		/* What does this one do? */ 
 		frame.pack();
+
 	}
 
 
@@ -284,7 +310,10 @@ public class SlonGui {
 				paragraphs.add(par);
 				sep = "";
 			}
-		} finally {
+		} catch (Exception e) {
+			// do nothing
+		}
+		finally {
 			if (in != null) {
 				in.close();
 			}
@@ -446,13 +475,13 @@ public class SlonGui {
 	 */
 	private void getCorrectFile(File f, JFileChooser chooser) {
 		String fileName = f.getAbsolutePath();
-		
+
 		if (! f.exists()) {
 			JOptionPane.showMessageDialog(null, "File not found.");
 			rechoose(chooser);
 			return;
 		}
-		
+
 		if (Utils.getExtension(f).equals(Utils.txt)) {
 			sourceFile = f;
 			File theTranslationFile = new File(
@@ -477,7 +506,7 @@ public class SlonGui {
 					+ "are accepted.");
 			rechoose(chooser);
 		}
-		
+
 	}
 
 	/**
@@ -499,10 +528,8 @@ public class SlonGui {
 	 * @return the "Save" button
 	 */
 	private JButton createButtonSave() {
-		JButton save = new JButton("Save");
+		JButton save = new JButton(UIManager.getIcon("FileView.floppyDriveIcon"));
 		save.setAlignmentX(Component.CENTER_ALIGNMENT);
-		save.setForeground(new Color(0, 0, 0));
-		save.setBackground(UIManager.getColor("Table.selectionBackground"));
 		save.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				// write updated translation
@@ -520,60 +547,12 @@ public class SlonGui {
 	 * @return "Choose source" button 
 	 */
 	private JButton createButtonChooseSource() {
-		JButton btnChooseSource = new JButton("Choose source");
-		btnChooseSource.setForeground(new Color(0, 0, 0));
-		btnChooseSource.setBackground(
-				UIManager.getColor("Table.selectionBackground"));
+		JButton btnChooseSource = new JButton(
+				UIManager.getIcon("FileView.directoryIcon"));
 		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				/* reset the instance variables and all that */
-				if (unsavedChanges) {
-					showSaveOptionDialog();
-				}
-				clean();
-
-				JFileChooser chooser = new JFileChooser();
-				chooser.setCurrentDirectory(
-						new File(System.getProperty("user.home")));
-				chooser.setFileFilter(new FileFilter() {
-					
-					@Override
-					public String getDescription() {
-						// TODO Auto-generated method stub
-						return ".txt and .slon";
-					}
-					
-					@Override
-					public boolean accept(File f) {
-					    if (f.isDirectory()) {
-					        return true;
-					    }
-					    String extension = Utils.getExtension(f);
-					    if (extension != null) {
-					        if (extension.equals(Utils.txt) ||
-					            extension.equals(Utils.slon)) {
-					                return true;
-					        } else {
-					            return false;
-					        }
-					    }
-
-					    return false;
-					}
-				});
-				int result = chooser.showOpenDialog(null);
-				if (result == JFileChooser.APPROVE_OPTION) {
-					getCorrectFile(chooser.getSelectedFile(), chooser);
-					if (translationFile != null) {
-						// read translation in progress
-						loadOldTranslation(translationFile);
-					} else if (sourceFile != null) {
-						// read source for new translation
-						loadNewTranslation(sourceFile);
-					}
-				}
+				chooseFileToOpen();
 			}
-
 		});
 		return btnChooseSource;
 	}
@@ -584,9 +563,7 @@ public class SlonGui {
 	 * @return "Help" button
 	 */
 	private JButton createButtonHelp() {
-		JButton btnHelp = new JButton("Help");
-		btnHelp.setForeground(new Color(0, 0, 0));
-		btnHelp.setBackground(UIManager.getColor("Table.selectionBackground"));
+		JButton btnHelp = new JButton("?");
 		btnHelp.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -594,8 +571,10 @@ public class SlonGui {
 
 				/* Create the tabbed panel */
 				JTabbedPane tabbedPane = new JTabbedPane();
+				tabbedPane.setOpaque(false);
 
 				JPanel panel1 = new JPanel();
+				panel1.setOpaque(false);
 				panel1.add(makeTextArea(help.about));
 
 				tabbedPane.addTab("About", null, panel1,
@@ -623,8 +602,6 @@ public class SlonGui {
 						"How to save the current translation");
 				tabbedPane.setMnemonicAt(3, KeyEvent.VK_4);
 
-
-				//JScrollPane scrollPane = new JScrollPane(helpTextArea);
 				JOptionPane.showMessageDialog(
 						null, tabbedPane, "SLON Help Page",
 						JOptionPane.INFORMATION_MESSAGE);
@@ -658,7 +635,8 @@ public class SlonGui {
 		table.setDefaultRenderer(
 				String.class, new MultiLineTableCellRenderer());
 		table.setDefaultEditor(String.class, new MultiLineTableCellEditor());
-
+		/* Center text in header */
+		centerTableHeader();
 		/* Navigation from one cell to the next by pressing Enter*/
 		InputMap input = table.getInputMap(
 				JTable.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -747,7 +725,7 @@ public class SlonGui {
 		area.setOpaque(false);
 		return area;
 	}
-	
+
 	/**
 	 * Opens new file chooser dialog and checks the selected file
 	 * @param chooser the JFileChooser to choose the new file with
@@ -757,5 +735,262 @@ public class SlonGui {
 		if (chooserResult == JFileChooser.APPROVE_OPTION) {
 			getCorrectFile(chooser.getSelectedFile(), chooser);
 		}
+	}
+
+	/**
+	 * Sets the look and feel of the application to Nimbus
+	 */
+	private static void setNimbusLookAndFeel() {
+		try {
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					updateUIElements();
+					break;
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			// If Nimbus is not available, set to System look and feel
+			setNativeLookAndFeel();
+		}
+	}
+
+	/**
+	 * Sets the look and feel of the application to GTK+
+	 */
+	private static void setGTKLookAndFeel() {
+		try {
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if ("GTK+".equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					updateUIElements();
+					break;
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			// If Nimbus is not available, set to System look and feel
+			setNativeLookAndFeel();
+		}
+	}
+
+	/**
+	 * Sets the look and feel of the application to GTK+
+	 */
+	private static void setChosenLookAndFeel(String lf) {
+		try {
+			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if (lf.equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					updateUIElements();
+					break;
+				}
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			// If Nimbus is not available, set to System look and feel
+			setNativeLookAndFeel();
+		}
+	}
+
+	/**
+	 * Sets the look and feel of the application to the System's native
+	 */
+	private static void setNativeLookAndFeel() {
+		try {
+			UIManager.setLookAndFeel(
+					UIManager.getSystemLookAndFeelClassName());
+			updateUIElements();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+	}
+
+	private JMenuBar createMenu() {
+		JMenuBar menu = new JMenuBar();
+
+		/* Project menu */
+		JMenu projectMenu = new JMenu("Project");
+		JMenuItem newItem = new JMenuItem("New");
+		newItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				chooseFileToOpen();
+			}
+		});
+		projectMenu.add(newItem);
+
+		JMenuItem openItem = new JMenuItem("Open");
+		openItem.addActionListener(new ActionListener() {		
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				chooseFileToOpen();
+			}
+		});
+		projectMenu.add(openItem);
+
+		projectMenu.addSeparator();
+
+		JMenuItem saveItem = new JMenuItem("Save");
+		saveItem.addActionListener(new ActionListener() {		
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				saveTranslation();
+			}
+		});
+		projectMenu.add(saveItem);
+
+		projectMenu.addSeparator();
+
+		JMenuItem closeItem = new JMenuItem("Close");
+		closeItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				closeCurrentTranslation();				
+			}
+		});
+		projectMenu.add(closeItem);
+
+		menu.add(projectMenu); 
+
+		/* Edit menu */
+		JMenu editMenu = new JMenu("Edit"); // TODO make it do something
+		JMenuItem undoItem = new JMenuItem("Undo");
+		editMenu.add(undoItem);
+		JMenuItem redoItem = new JMenuItem("Redo");
+		editMenu.add(redoItem);
+		menu.add(editMenu);
+
+		/* View menu */
+		final JMenu viewMenu = new JMenu("View");
+		JRadioButton nativeLFItem = 
+				new JRadioButton("Native", false);
+		nativeLFItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				setNativeLookAndFeel();
+				SwingUtilities.updateComponentTreeUI(frame);
+				javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
+				frame.pack();
+			}
+		});
+		JRadioButton nimbusLFItem = 
+				new JRadioButton("Nimbus", true); // TODO check if poss.
+		nimbusLFItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				setChosenLookAndFeel("Nimbus");
+				SwingUtilities.updateComponentTreeUI(frame);
+				javax.swing.MenuSelectionManager.defaultManager().clearSelectedPath();
+				frame.pack();
+			}
+		});
+		viewMenu.add(nativeLFItem);
+		viewMenu.add(nimbusLFItem);
+		ButtonGroup views = new ButtonGroup();
+		views.add(nativeLFItem);
+		views.add(nimbusLFItem);
+		menu.add(viewMenu);
+
+		/* Help Menu */
+		JMenu helpMenu = new JMenu("Help");
+		menu.add(helpMenu);
+
+		return menu;
+	}
+
+	/**
+	 * Choose a file to start/resume a translation
+	 */
+	private void chooseFileToOpen() {
+		closeCurrentTranslation();	
+
+		JFileChooser chooser = new JFileChooser();
+		chooser.setCurrentDirectory(
+				new File(System.getProperty("user.home")));
+		chooser.setFileFilter(new FileFilter() {
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return ".txt and .slon";
+			}
+
+			@Override
+			public boolean accept(File f) {
+				if (f.isDirectory()) {
+					return true;
+				}
+				String extension = Utils.getExtension(f);
+				if (extension != null) {
+					if (extension.equals(Utils.txt) ||
+							extension.equals(Utils.slon)) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+
+				return false;
+			}
+		});
+
+
+		int result = chooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+			getCorrectFile(chooser.getSelectedFile(), chooser);
+			if (translationFile != null) {
+				// read translation in progress
+				loadOldTranslation(translationFile);
+			} else if (sourceFile != null) {
+				// read source for new translation
+				loadNewTranslation(sourceFile);
+			}
+		}
+	}
+
+	/**
+	 * Close current translation
+	 */
+	private void closeCurrentTranslation() {
+		/* close open paragraphs */
+		try {
+			table.getCellEditor().stopCellEditing();
+		} catch (Exception e) {
+			// do nothing, sometimes there wasn't any open segment
+		}
+
+		/* reset the instance variables and all that */
+		if (unsavedChanges) {
+			showSaveOptionDialog();
+		}
+		clean();
+	}
+
+	private static void updateUIElements() {
+		try {
+			btnSave.setIcon(
+					UIManager.getIcon("FileView.floppyDriveIcon"));
+			btnChooseSource.setIcon(
+					UIManager.getIcon("FileView.directoryIcon"));
+			centerTableHeader();
+		} catch (Exception e) {
+			// do nothing if there are is no table or no buttons yet
+		}
+	}
+
+	/**
+	 * Center the text in the header
+	 */
+	private static void centerTableHeader() {
+		DefaultTableCellRenderer headerRenderer = 
+				(DefaultTableCellRenderer) 
+				table.getTableHeader().getDefaultRenderer();
+		headerRenderer.setHorizontalAlignment(JLabel.CENTER);
+		// TODO Make it work also after switching to native
 	}
 }
