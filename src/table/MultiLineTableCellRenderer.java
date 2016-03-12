@@ -31,7 +31,7 @@ public class MultiLineTableCellRenderer
 	private Indentation indentation = new Indentation();
 	
 	// TODO make it the same as in SlonGui;
-	private Color mainColor = new Color(38, 77, 115); 
+	private Color mainColor = new Color(57,105,138); 
 
 	public MultiLineTableCellRenderer() {
 		setLineWrap(true);
