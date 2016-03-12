@@ -42,8 +42,8 @@ public class MultiLineTableCellRenderer
 	public Component getTableCellRendererComponent(
 			JTable table, Object value, boolean isSelected, boolean hasFocus,
 			int row, int column) {
-		// The coments column
-		if (column == 2) {
+		// The comments column
+		if (table.getColumnName(column) == "Comments") {
 			if (isSelected) {
 				setForeground(Color.GRAY);
 				// the background shouldn't be like the source column's

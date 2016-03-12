@@ -1,5 +1,6 @@
 package main;
 
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
@@ -26,6 +27,9 @@ import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 import javax.swing.JButton;
 
 import java.awt.BorderLayout;
@@ -40,22 +44,27 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.Document;
 
 import java.awt.Color;
 
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
+
 import table.MultiLineCellTable;
 import table.MultiLineTableCellEditor;
 import table.MultiLineTableCellRenderer;
 import table.TableCellListener;
 import tools.Help;
+
 import java.awt.Cursor;
 
 public class SlonGui {
 
 	private JFrame frame;
 	private static JTable table;
-	
+
 	private Slon slon;
 
 	private static JButton btnSave;
@@ -98,19 +107,19 @@ public class SlonGui {
 	 * Creates the application.
 	 */
 	public SlonGui() {
-		
+
 		/* The core of the program */
 		slon = new Slon();
-		
+
 		/* Color theme */
 		// TODO move it to some other class
 		mainColor = new Color(57,105,138); // TODO allow for user preferences
 
 		frame = createFrame();
-		
+
 		/* Table */
 		frame.getContentPane().add(createTable(), BorderLayout.CENTER);
-		
+
 		/* Menubar */
 		JMenuBar menuBar = createMenuBar();
 
@@ -136,10 +145,10 @@ public class SlonGui {
 
 		btnSave = createButtonSave();
 		iconsPanel.add(btnSave);
-		
+
 		btnClose = createButtonClose();
 		iconsPanel.add(btnClose);
-	
+
 		/* Exit Listener */
 		frame.addWindowListener(createExitListener());
 
@@ -199,7 +208,7 @@ public class SlonGui {
 		});
 		return btnChooseSource;
 	}
-	
+
 	/**
 	 * Creates the "Save" button
 	 * which allows the user to save their current translation
@@ -213,8 +222,7 @@ public class SlonGui {
 		btn.setEnabled(false);
 		btn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				// write updated translation
-				slon.saveTranslation(table);
+				slon.saveTranslation(table); // write updated translation
 				btnSave.setEnabled(false);
 				saveItem.setEnabled(false);
 			}
@@ -241,7 +249,7 @@ public class SlonGui {
 		btn.setEnabled(false);
 		return btn;
 	}
-	
+
 	/**
 	 * Creates the table and puts it into a scroll pane
 	 * 
@@ -346,7 +354,7 @@ public class SlonGui {
 
 	/**
 	 * Sets the look and feel of the application
-	 * @param lf the look and feel chosed by the user
+	 * @param lf the look and feel chosen by the user
 	 */
 	private static void setChosenLookAndFeel(String lf) {
 		try {
@@ -383,79 +391,112 @@ public class SlonGui {
 	 * @return the menu bar
 	 */
 	private JMenuBar createMenuBar() {
+
 		JMenuBar menu = new JMenuBar();
 
 		/* Project menu */
-		JMenu projectMenu = new JMenu("Project");
-		newItem = new JMenuItem("New");
-		newItem.setIcon(
-				UIManager.getIcon(NEW_ICON_NAME));
-		// newItem.setToolTipText("Create new project");
-		newItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
-			}
-		});
-		projectMenu.add(newItem);
-
-		openItem = new JMenuItem("Open");
-		openItem.setIcon(
-				UIManager.getIcon(OPEN_ICON_NAME));
-		// openItem.setToolTipText("Open an existing project");
-		openItem.addActionListener(new ActionListener() {		
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
-			}
-		});
-		projectMenu.add(openItem);
-
-		projectMenu.addSeparator();
-
-		saveItem = new JMenuItem("Save");
-		saveItem.setIcon(
-				UIManager.getIcon(SAVE_ICON_NAME));
-		saveItem.setEnabled(false);
-		//saveItem.setToolTipText("Save current project");
-		saveItem.addActionListener(new ActionListener() {		
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				slon.saveTranslation(table);
-				btnSave.setEnabled(false);
-				saveItem.setEnabled(false);
-			}
-		});
-		projectMenu.add(saveItem);
-
-		projectMenu.addSeparator();
-
-		closeItem = new JMenuItem("Close");
-		closeItem.setIcon(
-				UIManager.getIcon(CLOSE_ICON_NAME));
-		closeItem.setEnabled(false);
-		closeItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				slon.closeCurrentTranslation(table, btnSave, saveItem, btnClose, closeItem);				
-			}
-		});
-		projectMenu.add(closeItem);
-
+		JMenu projectMenu = createMenuProject();
 		menu.add(projectMenu); 
 
 		/* Edit menu */
-		JMenu editMenu = new JMenu("Edit"); // TODO make it do something
-		JMenuItem undoItem = new JMenuItem("Undo");
-		editMenu.add(undoItem);
-		JMenuItem redoItem = new JMenuItem("Redo");
-		editMenu.add(redoItem);
+		JMenu editMenu = createMenuEdit();
 		menu.add(editMenu);
 
 		/* View menu */
-		final JMenu viewMenu = new JMenu("View");
+		JMenu viewMenu = createMenuView();
+		menu.add(viewMenu);
+
+		/* Help Menu */
+		JMenu helpMenu = createMenuHelp();
+		menu.add(helpMenu);
+
+
+		return menu;
+	}
+
+	/**
+	 * Creates the Help menu (about, how to and license)
+	 * @return the help menu
+	 */
+	private JMenu createMenuHelp() {
+
+		JMenu helpMenu = new JMenu("Help");
+
+		/* About */
+		JMenuItem about = new JMenuItem("About");
+		about.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Help help = new Help();
+				JLabel lable = new JLabel(help.about);
+				JOptionPane.showMessageDialog(
+						null, lable, "SLON Help Page",
+						JOptionPane.INFORMATION_MESSAGE);		
+			}
+		});
+		helpMenu.add(about);
+
+		/* How to */
+		JMenuItem howTo = new JMenuItem("How to");
+		howTo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Help help = new Help();
+				/* Create the tabbed panel */
+				JTabbedPane tabbedPane = new JTabbedPane();
+
+				JLabel labelNew = new JLabel(help.startNew);
+				labelNew.setPreferredSize(new Dimension(
+						frame.getPreferredSize().width/3, 
+						frame.getPreferredSize().height/3));
+
+				tabbedPane.addTab("How to start", null, labelNew,
+						"Creating a new translation project");
+				tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
+
+				JLabel labelOpen = new JLabel(help.resumeOld);
+
+				tabbedPane.addTab("Resume a translation", null, labelOpen,
+						"Opening an existing project");
+				tabbedPane.setMnemonicAt(1, KeyEvent.VK_2);
+
+				JLabel labelSave = new JLabel(help.save);
+
+				tabbedPane.addTab("Save a translation", null, labelSave,
+						"Saving the current translation");
+				tabbedPane.setMnemonicAt(2, KeyEvent.VK_3);
+
+				JOptionPane.showMessageDialog(
+						null, tabbedPane, "SLON Help Page",
+						JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		helpMenu.add(howTo);
+
+		/* License */
+		JMenuItem license = new JMenuItem("License");
+		license.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Help help = new Help();
+				final JEditorPane pane;
+				pane = new JEditorPane("text/html", help.license);
+				JOptionPane.showMessageDialog(
+						null, pane, "SLON Help Page",
+						JOptionPane.INFORMATION_MESSAGE);
+			}
+		});
+		helpMenu.add(license);
+
+		return helpMenu;
+	}
+
+	/**
+	 * Creates the View menu (Nimbus and Native)
+	 * @return the view menu
+	 */
+	private JMenu createMenuView() {
+		JMenu viewMenu = new JMenu("View");
 		JRadioButtonMenuItem nativeLFItem = 
 				new JRadioButtonMenuItem("Native", false);
 		nativeLFItem.addActionListener(new ActionListener() {
@@ -483,80 +524,89 @@ public class SlonGui {
 		ButtonGroup views = new ButtonGroup();
 		views.add(nativeLFItem);
 		views.add(nimbusLFItem);
-		menu.add(viewMenu);
-
-		/* Help Menu */
-		JMenu helpMenu = new JMenu("Help");
-
-		JMenuItem about = new JMenuItem("About");
-		about.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Help help = new Help();
-				JLabel lable = new JLabel(help.about);
-				JOptionPane.showMessageDialog(
-						null, lable, "SLON Help Page",
-						JOptionPane.INFORMATION_MESSAGE);		
-			}
-		});
-		helpMenu.add(about);
-		
-		JMenuItem manual = new JMenuItem("Manual");
-		manual.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Help help = new Help();
-				/* Create the tabbed panel */
-				JTabbedPane tabbedPane = new JTabbedPane();
-				
-				JLabel labelNew = new JLabel(help.startNew);
-				labelNew.setPreferredSize(new Dimension(
-						frame.getPreferredSize().width/3, 
-						frame.getPreferredSize().height/3));
-
-				tabbedPane.addTab("How to start", null, labelNew,
-						"Creating a new translation project");
-				tabbedPane.setMnemonicAt(0, KeyEvent.VK_1);
-
-				JLabel labelOpen = new JLabel(help.resumeOld);
-
-				tabbedPane.addTab("Resume a translation", null, labelOpen,
-						"Opening an existing project");
-				tabbedPane.setMnemonicAt(1, KeyEvent.VK_2);
-
-				JLabel labelSave = new JLabel(help.save);
-
-				tabbedPane.addTab("Save a translation", null, labelSave,
-						"Saving the current translation");
-				tabbedPane.setMnemonicAt(2, KeyEvent.VK_3);
-
-				JOptionPane.showMessageDialog(
-						null, tabbedPane, "SLON Help Page",
-						JOptionPane.INFORMATION_MESSAGE);
-			}
-		});
-		helpMenu.add(manual);
-		
-		JMenuItem license = new JMenuItem("License");
-		license.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Help help = new Help();
-				JEditorPane pane;
-				pane = new JEditorPane("text/html", help.license);
-				JOptionPane.showMessageDialog(
-						null, pane, "SLON Help Page",
-						JOptionPane.INFORMATION_MESSAGE);
-			}
-		});
-		helpMenu.add(license);
-		
-		menu.add(helpMenu);
-
-
-		return menu;
+		return viewMenu;
 	}
 
+	/**
+	 * Creates edit menu (undo and redo)
+	 * 
+	 * @return the edit menu
+	 */
+	private JMenu createMenuEdit() {
+		JMenu editMenu = new JMenu("Edit"); // TODO make it do something
+		JMenuItem undoItem = new JMenuItem("Undo");
+		editMenu.add(undoItem);
+		JMenuItem redoItem = new JMenuItem("Redo");
+		editMenu.add(redoItem);
+		return editMenu;
+	}
+
+	/**
+	 * Creates the project menu (new, open, save and close)
+	 * @return the project menu
+	 */
+	private JMenu createMenuProject() {
+		JMenu projectMenu = new JMenu("Project");
+		newItem = new JMenuItem("New");
+		newItem.setIcon(
+				UIManager.getIcon(NEW_ICON_NAME));
+		newItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				slon.chooseFileToOpen(
+						table, btnSave, saveItem, btnClose, closeItem);
+			}
+		});
+		projectMenu.add(newItem);
+
+		openItem = new JMenuItem("Open");
+		openItem.setIcon(
+				UIManager.getIcon(OPEN_ICON_NAME));
+		openItem.addActionListener(new ActionListener() {		
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				slon.chooseFileToOpen(
+						table, btnSave, saveItem, btnClose, closeItem);
+			}
+		});
+		projectMenu.add(openItem);
+
+		projectMenu.addSeparator();
+
+		saveItem = new JMenuItem("Save");
+		saveItem.setIcon(
+				UIManager.getIcon(SAVE_ICON_NAME));
+		saveItem.setEnabled(false);
+		saveItem.addActionListener(new ActionListener() {		
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				slon.saveTranslation(table);
+				btnSave.setEnabled(false);
+				saveItem.setEnabled(false);
+			}
+		});
+		projectMenu.add(saveItem);
+
+		projectMenu.addSeparator();
+
+		closeItem = new JMenuItem("Close");
+		closeItem.setIcon(
+				UIManager.getIcon(CLOSE_ICON_NAME));
+		closeItem.setEnabled(false);
+		closeItem.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				slon.closeCurrentTranslation(
+						table, btnSave, saveItem, btnClose, closeItem);				
+			}
+		});
+		projectMenu.add(closeItem);
+		return projectMenu;
+	}
+
+	/**
+	 * Updates the icons of the buttons to the once of the current L&F
+	 */
 	private static void updateUIElements() {
 		try {
 			btnSave.setIcon(

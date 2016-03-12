@@ -179,6 +179,11 @@ public class Slon {
 
 	/**
 	 * Choose a file to start/resume a translation
+	 * @param table the translation table
+	 * @param btnSave the "Save" button
+	 * @param saveItem the menu item "Save"
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
 	 */
 	public void chooseFileToOpen(JTable table, 
 			JButton btnSave, JMenuItem saveItem, 
@@ -231,6 +236,11 @@ public class Slon {
 	
 	/**
 	 * Close current translation
+	 * @param table the translation table
+	 * @param btnSave the "Save" button
+	 * @param saveItem the menu item "Save"
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
 	 */
 	public void closeCurrentTranslation(JTable table, 
 			JButton btnSave, JMenuItem saveItem, 
@@ -251,6 +261,9 @@ public class Slon {
 
 	/**
 	 * Shows a dialog that gives the user the option to save the translation
+	 * 	 * @param table the translation table
+	 * @param btnSave the "Save" button
+	 * @param saveItem the menu item "Save"
 	 */
 	public void showSaveOptionDialog(
 			JTable table, JButton btnSave, JMenuItem saveItem) {
@@ -283,6 +296,10 @@ public class Slon {
 	/**
 	 * Loads translation from a .slon file
 	 * Or reads a monolingual source file, if no translation is available yet
+	 * @param table the translation table
+	 * @param f the translation file
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
 	 */
 	private void loadOldTranslation(
 			JTable table, File f, JButton btnClose, JMenuItem closeItem) {		
@@ -298,7 +315,10 @@ public class Slon {
 
 	/**
 	 * Loads source for translation from a .txt file
-	 *
+	 * @param table the translation table
+	 * @param f the source file
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
 	 */
 	private void loadNewTranslation(
 			JTable table, File f, JButton btnClose, JMenuItem closeItem) {		
@@ -381,6 +401,7 @@ public class Slon {
 	
 	/**
 	 * Reads the Paragraph objects and displays them on the translation table
+	 * @param table the translation table
 	 */
 	private void showParagraphs(JTable table) {
 		DefaultTableModel tblModel = (DefaultTableModel) table.getModel();
@@ -407,6 +428,9 @@ public class Slon {
 
 	/**
 	 * Cleans the translation table and the list of Paragraphs.
+	 * @param table the translation table
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
 	 */
 	private void clean(JTable table, JButton btnClose, JMenuItem closeItem) {
 		sourceFile = null;
