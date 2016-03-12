@@ -1,14 +1,18 @@
 package main;
 
+import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.LayoutManager;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JEditorPane;
@@ -18,9 +22,11 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButton;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -35,6 +41,8 @@ import javax.swing.JButton;
 import java.awt.BorderLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -202,8 +210,9 @@ public class SlonGui {
 		btnChooseSource.setToolTipText("Create new project");
 		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
+				newProject();
+				//slon.chooseFileToOpen(
+				//		table, btnSave, saveItem, btnClose, closeItem);
 			}
 		});
 		return btnChooseSource;
@@ -637,4 +646,161 @@ public class SlonGui {
 		headerRenderer.setHorizontalAlignment(JLabel.CENTER);
 		// TODO Make it work also after switching to native
 	}
+	
+	/**
+	 * Create a new project
+	 */
+	private void newProject() {
+		JPanel options = new JPanel();
+		options.setLayout(new GridLayout(6, 1, 0, 20));
+		
+		/* Location */
+		
+		JPanel locationPanel = new JPanel(new BorderLayout());
+		JLabel locationLabel = new JLabel(
+				makeBold("Select a location for your project:"));
+		locationPanel.add(locationLabel, BorderLayout.NORTH);
+		
+		final JTextField locationField = 
+				new JTextField(System.getProperty("user.home"));
+				//TODO suggest current dir
+		locationField.setForeground(Color.gray);
+		locationField.addFocusListener(new FocusListener() {
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				// do nothing
+			}
+			@Override
+			public void focusGained(FocusEvent arg0) {
+				locationField.setForeground(Color.black);
+			}
+		});
+				
+		JButton locationButton = new JButton("Browse");
+		locationPanel.add(locationField, BorderLayout.CENTER);
+		locationPanel.add(locationButton, BorderLayout.EAST);
+		options.add(locationPanel);
+		
+		/* Name */
+		JPanel namePanel = new JPanel(new BorderLayout());
+		JLabel nameLabel = new JLabel(
+				makeBold("Type a name for your project:"));
+		namePanel.add(nameLabel, BorderLayout.NORTH);
+		
+		final JTextField nameField = new JTextField();
+		namePanel.add(nameField, BorderLayout.CENTER);
+		options.add(namePanel);
+		
+		/* Source */
+		JPanel sourcePanel = new JPanel(new BorderLayout());
+		JLabel sourceLabel = 
+				new JLabel(makeBold("Choose a source file to translate:"));
+		sourcePanel.add(sourceLabel, BorderLayout.NORTH);
+		final JTextField sourceField = new JTextField();
+		JButton sourceButton1 = new JButton("Browse");
+		sourcePanel.add(sourceField, BorderLayout.CENTER);
+		sourcePanel.add(sourceButton1, BorderLayout.EAST);
+		
+		options.add(sourcePanel);
+		
+		/* Target Button and Text */
+		final JButton targetButton = new JButton("Browse"); // TODO enabling
+		final JLabel targetLabel = 
+				new JLabel(makeBold("Choose a target file to edit:"));
+		final JTextField targetField = new JTextField();
+		
+		
+		/* Modes */
+		JPanel modePanel = new JPanel(new BorderLayout());
+		JLabel modeLabel = 
+				new JLabel(makeBold("Choose the mode of the project:"));
+		modePanel.add(modeLabel, BorderLayout.NORTH);
+		JRadioButton translationMode = new JRadioButton("translation");
+		translationMode.setSelected(true);
+		translationMode.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				targetButton.setEnabled(false);
+				targetLabel.setForeground(Color.gray);
+				targetField.setFocusable(false);
+			}
+		});
+		JRadioButton editingMode = new JRadioButton("translation editing");
+		editingMode.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				 targetButton.setEnabled(true);
+				 targetLabel.setForeground(Color.black);
+				 targetField.setFocusable(true);
+			}
+		});
+		ButtonGroup modes = new ButtonGroup();
+		modes.add(translationMode);
+		modes.add(editingMode);
+		modePanel.add(translationMode, BorderLayout.WEST);
+		modePanel.add(editingMode, BorderLayout.CENTER);
+		options.add(modePanel);
+		
+		/* Target */
+		targetButton.setEnabled(false);
+		targetField.setFocusable(false);
+		
+		JPanel targetPanel = new JPanel(new BorderLayout());
+		targetLabel.setForeground(Color.gray);
+		targetPanel.add(targetLabel, BorderLayout.NORTH);
+		
+		targetPanel.add(targetField, BorderLayout.CENTER);
+		targetPanel.add(targetButton, BorderLayout.EAST);
+		
+		options.add(targetPanel);
+		options.add(Box.createRigidArea(new Dimension(0,15)));;
+		
+		Object message = (Object) options;
+		int option = JOptionPane.showConfirmDialog(null, message, 
+				"SLON: Create new project", 
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (option == JOptionPane.OK_OPTION)
+		{
+		    String location = locationField.getText();
+		    String name = nameField.getText();
+		    String source = sourceField.getText();
+		    String target = targetField.getText();
+		}
+		
+		/* Navigation between fields */
+		
+		locationField.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.out.print("boo");
+				nameField.requestFocus(); // TODO think of sth better
+			}
+		});
+		
+		nameField.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				sourceField.requestFocus(); // TODO think of sth better
+			}
+		});
+		
+		sourceField.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				targetField.requestFocus(); // TODO think of sth better
+			}
+		});
+		
+		targetField.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				locationField.requestFocus(); // TODO think of sth better
+			}
+		});
+	}
+	
+	private String makeBold(String text) {
+		return "<html><b>" + text + "</b></html>";
+	}
+	
 }

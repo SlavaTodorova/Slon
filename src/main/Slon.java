@@ -1,5 +1,14 @@
 package main;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
@@ -14,11 +23,16 @@ import java.io.ObjectOutputStream;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.DefaultTableModel;
 
@@ -176,7 +190,8 @@ public class Slon {
 		bw.flush();
 		bw.close();
 	}
-
+	
+	
 	/**
 	 * Choose a file to start/resume a translation
 	 * @param table the translation table
