@@ -1,7 +1,5 @@
 package main;
 
-import java.awt.Component;
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
@@ -11,11 +9,12 @@ import java.awt.LayoutManager;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.InputMap;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -32,9 +31,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import javax.swing.JButton;
 
@@ -52,19 +54,20 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.text.Document;
 
 import java.awt.Color;
 
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
-
+import javax.swing.filechooser.FileFilter;
+import elements.ProjectView;
 import table.MultiLineCellTable;
 import table.MultiLineTableCellEditor;
 import table.MultiLineTableCellRenderer;
 import table.TableCellListener;
 import tools.Help;
+import tools.Project;
+import tools.Utils;
 
 import java.awt.Cursor;
 
@@ -191,11 +194,129 @@ public class SlonGui {
 		btnChooseSource.setToolTipText("Open an existing project");
 		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
+				openProject(new File(System.getProperty("user.home")));
+				btnClose.setEnabled(true);
+				closeItem.setEnabled(true);
 			}
 		});
 		return btnChooseSource;
+	}
+
+	private void openProject(File currentDir) {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setCurrentDirectory(currentDir); // TODO Preferences!
+		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		chooser.setFileView(new ProjectView());
+		int result = chooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+			File selectedDir = chooser.getSelectedFile();
+			if (isProject(selectedDir)) {
+				closeCurrentTranslation();
+				slon.resumeProject(selectedDir, table);
+			} else {
+				openProject(selectedDir);
+			}
+		}
+	}
+
+	private boolean isProject(File dir) {
+		File[] files = dir.listFiles();
+		boolean hasSource = false;
+		boolean hasTarget = false;
+		boolean hasSlon = false;
+		for (int i=0; i<files.length; i++) {
+			String fileName = files[i].getName();
+			switch(fileName) {
+			case "source.txt":	hasSource = true;
+			break;
+			case "target.txt":	hasTarget = true;
+			break;
+			case "translation.slon":	hasSlon = true;
+			break;
+			default: break; // do nothing
+			}
+		}
+		return hasSource && hasTarget && hasSlon;
+	}
+	/**
+	 * Close current translation
+	 * TODO move this method to the GUI file
+	 * @param table the translation table
+	 * @param btnSave the "Save" button
+	 * @param saveItem the menu item "Save"
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
+	 */
+	private void closeCurrentTranslation() {
+		/* close open paragraphs */
+		try {
+			table.getCellEditor().stopCellEditing();
+		} catch (Exception e) {
+			// do nothing, sometimes there wasn't any open segment
+		}
+
+		/* reset the instance variables and all that */
+		if (slon.unsavedChanges) {
+			showSaveOptionDialog();
+		}
+		clean();
+	}
+
+	/**
+	 * Shows a dialog that gives the user the option to save the translation
+	 * TODO move to the GUI file
+	 * @param table the translation table
+	 * @param btnSave the "Save" button
+	 * @param saveItem the menu item "Save"
+	 */
+	private void showSaveOptionDialog() {
+		Object[] options = {"Save", "Don't save"};
+		int n = JOptionPane.showOptionDialog(null,
+				"Would you like to save your current translation?",
+				"Safe switching between source files.",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.QUESTION_MESSAGE,
+				null,
+				options,
+				options[0]);
+		if (n == 0) {
+			slon.saveTranslation(table);
+			btnSave.setEnabled(false);
+			saveItem.setEnabled(false);
+		} else if (n == 1) {
+			try {
+				table.getCellEditor().stopCellEditing();
+			} catch (Exception e) {
+				// do nothing - if nothing is edited,
+				// it is OK that cell editing can't be stopped
+			}
+			btnSave.setEnabled(false);
+			saveItem.setEnabled(false);
+			slon.unsavedChanges = false;
+		}
+	}
+
+	/**
+	 * Cleans the translation table and the list of Paragraphs.
+	 * @param table the translation table
+	 * @param btnClose the "Close" button
+	 * @param closeItem the menu item "Close"
+	 */
+	private void clean() { // TODO maka a "clean" method in the Slon class
+		slon.project = new Project();
+		DefaultTableModel tbModel = (DefaultTableModel) table.getModel();
+		if (slon.paragraphs != null) {
+			for (int i = slon.paragraphs.size()-1; i >= 0; i--) {
+				tbModel.removeRow(i); // clean the displayed table
+			}
+		} else {
+			while (table.getRowCount() > 0) {
+				tbModel.removeRow(0);
+			}
+		}
+		slon.paragraphs = null;
+		btnClose.setEnabled(false);
+		closeItem.setEnabled(false);
 	}
 
 	/**
@@ -210,9 +331,21 @@ public class SlonGui {
 		btnChooseSource.setToolTipText("Create new project");
 		btnChooseSource.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				newProject();
-				//slon.chooseFileToOpen(
-				//		table, btnSave, saveItem, btnClose, closeItem);
+				Project theProject = null;
+				try {
+					theProject = createProject(
+							System.getProperty("user.home"), "", "", false, "", true);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} finally {
+					if (theProject != null) {
+						closeCurrentTranslation();
+						slon.startProject(theProject, table);
+						btnClose.setEnabled(true);
+						closeItem.setEnabled(true);
+					}
+				}
 			}
 		});
 		return btnChooseSource;
@@ -251,8 +384,7 @@ public class SlonGui {
 		btn.setToolTipText("Close current project");
 		btn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				slon.closeCurrentTranslation(
-						table, btnSave, saveItem, btnClose, closeItem);
+				closeCurrentTranslation();
 			}
 		});
 		btn.setEnabled(false);
@@ -279,6 +411,10 @@ public class SlonGui {
 				return true;
 			}
 		};
+		// remove the default row in the model
+		while (tbModel.getRowCount() > 0) {
+			tbModel.removeRow(0);
+		}
 		table = new MultiLineCellTable(tbModel);
 		table.setShowHorizontalLines(false);
 		table.setDefaultRenderer(
@@ -351,7 +487,7 @@ public class SlonGui {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				if (slon.unsavedChanges) {
-					slon.showSaveOptionDialog(table, btnSave, saveItem);
+					showSaveOptionDialog();
 					System.exit(0);
 				} else {
 					System.exit(0);
@@ -407,13 +543,13 @@ public class SlonGui {
 		JMenu projectMenu = createMenuProject();
 		menu.add(projectMenu); 
 
-		/* Edit menu */
-		JMenu editMenu = createMenuEdit();
-		menu.add(editMenu);
-
-		/* View menu */
-		JMenu viewMenu = createMenuView();
-		menu.add(viewMenu);
+//		/* Edit menu */
+//		JMenu editMenu = createMenuEdit();
+//		menu.add(editMenu);
+//
+//		/* View menu */
+//		JMenu viewMenu = createMenuView();
+//		menu.add(viewMenu);
 
 		/* Help Menu */
 		JMenu helpMenu = createMenuHelp();
@@ -559,11 +695,26 @@ public class SlonGui {
 		newItem = new JMenuItem("New");
 		newItem.setIcon(
 				UIManager.getIcon(NEW_ICON_NAME));
-		newItem.addActionListener(new ActionListener() {
+		newItem.addActionListener(new ActionListener() { 
+			// this action listener is common for two objects, 
+			// TODO let them share it!
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
+				Project theProject = null;
+				try {
+					theProject = createProject(
+							System.getProperty("user.home"), "", "", false, "", true);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} finally {
+					if (theProject != null) {
+						closeCurrentTranslation();
+						slon.startProject(theProject, table);
+						btnClose.setEnabled(true);
+						closeItem.setEnabled(true);
+					}
+				}
 			}
 		});
 		projectMenu.add(newItem);
@@ -574,8 +725,9 @@ public class SlonGui {
 		openItem.addActionListener(new ActionListener() {		
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				slon.chooseFileToOpen(
-						table, btnSave, saveItem, btnClose, closeItem);
+				openProject(new File(System.getProperty("user.home")));
+				btnClose.setEnabled(true);
+				closeItem.setEnabled(true);
 			}
 		});
 		projectMenu.add(openItem);
@@ -605,8 +757,7 @@ public class SlonGui {
 		closeItem.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				slon.closeCurrentTranslation(
-						table, btnSave, saveItem, btnClose, closeItem);				
+				closeCurrentTranslation();				
 			}
 		});
 		projectMenu.add(closeItem);
@@ -646,24 +797,45 @@ public class SlonGui {
 		headerRenderer.setHorizontalAlignment(JLabel.CENTER);
 		// TODO Make it work also after switching to native
 	}
-	
+
 	/**
 	 * Create a new project
+	 * TODO Мнооого трябва да се чисти тук...
+	 * @throws IOException 
 	 */
-	private void newProject() {
+	private Project createProject(
+			String location, String name, String source, 
+			Boolean editingModeSelected, String target, Boolean firstTime)
+					throws IOException {
+
+		final Border defaultFieldBorder = new JTextField().getBorder();
+
+		/* Show panel */
+
 		JPanel options = new JPanel();
-		options.setLayout(new GridLayout(6, 1, 0, 20));
-		
+		options.setLayout(new GridLayout(10, 1));
+
 		/* Location */
-		
+
+		final JLabel locationWarning = new JLabel(
+				"Please, type in a valid folder name, or browse for one.");
+		locationWarning.setForeground(Color.red);
+		locationWarning.setVisible(false);
+
+		options.add(locationWarning);
+
 		JPanel locationPanel = new JPanel(new BorderLayout());
 		JLabel locationLabel = new JLabel(
 				makeBold("Select a location for your project:"));
 		locationPanel.add(locationLabel, BorderLayout.NORTH);
-		
-		final JTextField locationField = 
-				new JTextField(System.getProperty("user.home"));
-				//TODO suggest current dir
+
+		final JTextField locationField = new JTextField(location);
+		//TODO User Preferences
+
+		if (! firstTime) {
+			checkFileName(locationField, locationWarning, defaultFieldBorder);
+		}
+
 		locationField.setForeground(Color.gray);
 		locationField.addFocusListener(new FocusListener() {
 			@Override
@@ -675,48 +847,104 @@ public class SlonGui {
 				locationField.setForeground(Color.black);
 			}
 		});
-				
+
+
+
 		JButton locationButton = new JButton("Browse");
+		locationButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				locationWarning.setVisible(false);
+				locationField.setBorder(defaultFieldBorder);
+				try {
+					locationField.setText(chooseProjectLocation().getAbsolutePath());
+				} catch (Exception e1) {
+					// no source file specified
+					locationField.setText("");
+				}
+				checkFileName(
+						locationField, locationWarning, defaultFieldBorder);
+			}
+		});
 		locationPanel.add(locationField, BorderLayout.CENTER);
 		locationPanel.add(locationButton, BorderLayout.EAST);
 		options.add(locationPanel);
-		
+
 		/* Name */
+
+		final JLabel nameWarning = new JLabel(
+				"The project name can contain "
+						+ "upper case and lowercase latin letters, and digits."); 
+		// TODO check for special signs
+		nameWarning.setForeground(Color.red);
+		nameWarning.setVisible(false);
+		options.add(nameWarning);
+
 		JPanel namePanel = new JPanel(new BorderLayout());
 		JLabel nameLabel = new JLabel(
 				makeBold("Type a name for your project:"));
 		namePanel.add(nameLabel, BorderLayout.NORTH);
-		
-		final JTextField nameField = new JTextField();
+
+		final JTextField nameField = new JTextField(name);
+
+		if (! firstTime) {
+			checkProjectName(location, nameField, nameWarning, defaultFieldBorder);
+		}
+
 		namePanel.add(nameField, BorderLayout.CENTER);
 		options.add(namePanel);
-		
+
 		/* Source */
+
+		final JLabel sourceWarning = new JLabel(
+				"Please, type in a valid file name, or browse for one.");
+		sourceWarning.setForeground(Color.red);
+		sourceWarning.setVisible(false);
+		options.add(sourceWarning);
+
 		JPanel sourcePanel = new JPanel(new BorderLayout());
 		JLabel sourceLabel = 
 				new JLabel(makeBold("Choose a source file to translate:"));
 		sourcePanel.add(sourceLabel, BorderLayout.NORTH);
-		final JTextField sourceField = new JTextField();
-		JButton sourceButton1 = new JButton("Browse");
+		final JTextField sourceField = new JTextField(source);
+
+		if (! firstTime) {
+			checkFileName(sourceField, sourceWarning, defaultFieldBorder);
+		}
+
+		JButton sourceButton = new JButton("Browse");
+		sourceButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				sourceWarning.setVisible(false);
+				sourceField.setBorder(defaultFieldBorder);
+				try {
+					sourceField.setText(chooseSourceFile().getAbsolutePath());
+				} catch (Exception e) {
+					// no source file specified
+					sourceField.setText("");
+				}
+				checkFileName(sourceField, sourceWarning, defaultFieldBorder);
+			}
+		});
 		sourcePanel.add(sourceField, BorderLayout.CENTER);
-		sourcePanel.add(sourceButton1, BorderLayout.EAST);
-		
+		sourcePanel.add(sourceButton, BorderLayout.EAST);
+
 		options.add(sourcePanel);
-		
+
 		/* Target Button and Text */
-		final JButton targetButton = new JButton("Browse"); // TODO enabling
+		final JButton targetButton = new JButton("Browse");
 		final JLabel targetLabel = 
 				new JLabel(makeBold("Choose a target file to edit:"));
 		final JTextField targetField = new JTextField();
-		
-		
+
 		/* Modes */
 		JPanel modePanel = new JPanel(new BorderLayout());
 		JLabel modeLabel = 
 				new JLabel(makeBold("Choose the mode of the project:"));
 		modePanel.add(modeLabel, BorderLayout.NORTH);
 		JRadioButton translationMode = new JRadioButton("translation");
-		translationMode.setSelected(true);
+		translationMode.setSelected(! editingModeSelected);
 		translationMode.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -725,82 +953,190 @@ public class SlonGui {
 				targetField.setFocusable(false);
 			}
 		});
-		JRadioButton editingMode = new JRadioButton("translation editing");
+		JRadioButton editingMode = new JRadioButton(
+				"translation editing (not available yet)");
+		editingMode.setSelected(editingModeSelected);
 		editingMode.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				 targetButton.setEnabled(true);
-				 targetLabel.setForeground(Color.black);
-				 targetField.setFocusable(true);
+				targetButton.setEnabled(true);
+				targetLabel.setForeground(Color.black);
+				targetField.setFocusable(true);
 			}
 		});
+		// TODO Make the following enabled and create the functionality!
+		editingMode.setEnabled(false); 
 		ButtonGroup modes = new ButtonGroup();
 		modes.add(translationMode);
 		modes.add(editingMode);
 		modePanel.add(translationMode, BorderLayout.WEST);
 		modePanel.add(editingMode, BorderLayout.CENTER);
 		options.add(modePanel);
-		
+
 		/* Target */
+
+		final JLabel targetWarning = new JLabel(
+				"Please, type in a valid file name.");
+		targetWarning.setForeground(Color.red);
+		targetWarning.setVisible(false);
+
+		targetButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				targetWarning.setVisible(false);
+				targetField.setBorder(defaultFieldBorder);
+				try {
+					targetField.setText(chooseSourceFile().getAbsolutePath());
+				} catch (Exception e) {
+					// no source file specified
+					targetField.setText("");
+				}
+				checkFileName(targetField, targetWarning, defaultFieldBorder);
+			}
+		});
+
+		options.add(targetWarning);
+
 		targetButton.setEnabled(false);
 		targetField.setFocusable(false);
-		
+
+		if (! firstTime && editingMode.isSelected()) {
+			checkFileName(targetField, targetWarning, defaultFieldBorder);
+		}
+
 		JPanel targetPanel = new JPanel(new BorderLayout());
 		targetLabel.setForeground(Color.gray);
 		targetPanel.add(targetLabel, BorderLayout.NORTH);
-		
+
 		targetPanel.add(targetField, BorderLayout.CENTER);
 		targetPanel.add(targetButton, BorderLayout.EAST);
-		
+
 		options.add(targetPanel);
 		options.add(Box.createRigidArea(new Dimension(0,15)));;
-		
+
 		Object message = (Object) options;
+
 		int option = JOptionPane.showConfirmDialog(null, message, 
 				"SLON: Create new project", 
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (option == JOptionPane.OK_OPTION)
 		{
-		    String location = locationField.getText();
-		    String name = nameField.getText();
-		    String source = sourceField.getText();
-		    String target = targetField.getText();
+			/* Checks */ 
+			location = locationField.getText().trim();
+			name = nameField.getText().trim();
+			source = sourceField.getText().trim();
+			target = targetField.getText().trim(); // TODO make it usable
+
+			if (! new File(location).exists() 
+					|| ! isAcceptableName(name) 
+					|| existsProject(location, name)
+					|| ! new File(source).exists()) {
+				return createProject(location, name, source, 
+						editingMode.isSelected(), target, false);
+			}
+
+			/* Create the project */
+			Path projectPath = FileSystems.getDefault().getPath(location, name);
+			Files.createDirectory(projectPath);
+
+			Path sourcePath = FileSystems.getDefault().getPath(source);
+			Path coppiedSourceFilePath = FileSystems.getDefault().getPath(
+					projectPath.toString(), "source.txt");
+			Files.copy(sourcePath, coppiedSourceFilePath);
+			
+			return new Project(projectPath, coppiedSourceFilePath.toFile());
 		}
-		
-		/* Navigation between fields */
-		
-		locationField.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				System.out.print("boo");
-				nameField.requestFocus(); // TODO think of sth better
-			}
-		});
-		
-		nameField.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				sourceField.requestFocus(); // TODO think of sth better
-			}
-		});
-		
-		sourceField.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				targetField.requestFocus(); // TODO think of sth better
-			}
-		});
-		
-		targetField.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				locationField.requestFocus(); // TODO think of sth better
-			}
-		});
+		return null;
 	}
-	
+
+	private boolean isAcceptableName(String projectName) {
+		if (projectName.equals("")) {
+			return false;
+		}
+		return ! Pattern.matches(".*[^a-zA-Z0-9].*", projectName);		
+	}
+
+	private boolean existsProject(String location, String projectName) {
+		String path = location 
+				+ System.getProperty("file.separator") + projectName;
+		return new File(path).exists();
+	}
+
+	private void checkFileName(
+			JTextField field, JLabel warning, Border defaultBorder) {
+		if (new File(field.getText()).exists()) {
+			warning.setVisible(false);
+			field.setBorder(defaultBorder);
+		} else {
+			warning.setVisible(true);
+			field.setBorder(BorderFactory.createLineBorder(Color.red));
+		}
+	}
+
+	private void checkProjectName(String location, 
+			JTextField field, JLabel warning, Border defaultBorder) {
+		String name = field.getText().trim();
+		if (isAcceptableName(name) && ! existsProject(location, name)) {
+			warning.setVisible(false);
+			field.setBorder(defaultBorder);
+		} else {
+			warning.setVisible(true);
+			field.setBorder(BorderFactory.createLineBorder(Color.red));
+		}
+	}
+
+	private File chooseProjectLocation() {
+
+		JFileChooser chooser = new JFileChooser();
+		chooser.setCurrentDirectory(
+				new File(System.getProperty("user.home"))); // TODO Preferences!
+		chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+		int result = chooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+			return chooser.getSelectedFile();
+		}
+		return null;
+	}
+
+	private File chooseSourceFile() {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setCurrentDirectory(
+				new File(System.getProperty("user.home"))); // TODO Preferences!
+		chooser.setFileFilter(new FileFilter() {
+
+			@Override
+			public String getDescription() {
+				// TODO Auto-generated method stub
+				return ".txt";
+			}
+
+			@Override
+			public boolean accept(File f) {
+				if (f.isDirectory()) {
+					return true;
+				}
+				String extension = Utils.getExtension(f);
+				if (extension != null) {
+					if (extension.equals(Utils.txt)) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+				return false;
+			}
+		});
+
+		int result = chooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+			return chooser.getSelectedFile();
+		}
+		return null;
+	}
+
 	private String makeBold(String text) {
 		return "<html><b>" + text + "</b></html>";
 	}
-	
+
 }

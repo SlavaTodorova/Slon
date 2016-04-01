@@ -10,15 +10,12 @@ public class Help {
 	public String about = "<html><p>SLON: Very Good Translation Editor, Version 16.04</p>"
 			+ "<p>Release on: April 1, 2016</p><br/>"
 			+ "<p>Author: Slava Todorova</p>"
-			+ "<p>E-mail: todorova.slava@gmail.com</p><br/></html>"
-//			+ "License: "
-//			+ "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0"
-//			+ " International Public License "
-//			+ "(https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode)"
-			+ "";
+			+ "<p>E-mail: todorova.slava@gmail.com</p><br/></html>";
 	
-	public String startNew = "<html><p>To start a translation, open a source"
-			+ " text file in \".txt\" format.</p><br/>"
+	public String startNew = "<html><br/>"
+			+ "<p>To start a translation, you need to create a project.</p>"
+			+ "<p>Use the New Project button at the top right corner"
+			+ "or go to Project&rarr;New</p><br/>"
 			+ "<p>Type your translation in the second, central column.</p><br/>"
 			+ "<p>After typing a translation, the segment (the table cell) "
 			+ "should be closed in order for the changes to take effect. "
@@ -31,22 +28,14 @@ public class Help {
 			+ "<p>If you need to add comments, use the third column."
 			+ "The coments won't appear in the final translation.</p></html>";
 	
-	public String resumeOld = "<html>To resume your translation you can load "
-			+ "either the same source file as the first time, "
-			+ "or the produced \".slon\" file.</html>";
+	public String resumeOld = "<html>To resume your translation you have to open "
+			+ "an already existing project.<br/>.<br/>"
+			+ "Use the Open Project button "
+			+ "in the upper right corner or go to Project&rarr;Open.</html>";
 	
-	public String save = "<html>To save your translation, hit the save buton.<br/><br/>"
-			+ "This action will produce in the same directory "
-			+ "as your source file<br/>"
-			+ "(1) a new text file, "
-			+ "called \"YourSourceFileName.translated.txt\" "
-			+ "containing your translated text only,<br/>"
-			+ "and<br/>"
-			+ "(2) a \".slon\" file which will contain also the alignment "
-			+ "to the source text and the comments you have made.<br/><br/>"
-			+ "The plain text file with your translation can be opened"
-			+ " with any text editor suited to open \".txt\" files.<br/>"
-			+ "The \".slon\" file can only be opened with this program.<br/><br/>"
+	public String save = "<html>To save your translation, hit the save buton.<br/>.<br/>"
+			+ "The target file, containing only the translation, will be named"
+			+ "\"target.txt\" and will be directly in the project folder.<br/>.<br/>"
 			+ "Caution! There is no autosave in this version of the editor!</html>";
 	
 	public String license = "<html><a rel=\"license\" "

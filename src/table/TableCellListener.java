@@ -142,8 +142,8 @@ public class TableCellListener implements PropertyChangeListener, Runnable
 	@Override
 	public void run()
 	{
-		row = table.convertRowIndexToModel( table.getEditingRow() );
-		column = table.convertColumnIndexToModel( table.getEditingColumn() );
+		row = table.convertRowIndexToModel(table.getEditingRow());
+		column = table.convertColumnIndexToModel(table.getEditingColumn());
 		oldValue = table.getModel().getValueAt(row, column);
 		newValue = null;
 	}
@@ -154,11 +154,9 @@ public class TableCellListener implements PropertyChangeListener, Runnable
 	private void processEditingStopped()
 	{
 		newValue = table.getModel().getValueAt(row, column);
-
+		
 		//  The data has changed, invoke the supplied Action
-
-		if (! newValue.equals(oldValue))
-		{
+		if (! newValue.equals(oldValue)) {
 			//  Make a copy of the data in case another cell starts editing
 			//  while processing this change
 
@@ -171,5 +169,6 @@ public class TableCellListener implements PropertyChangeListener, Runnable
 				"");
 			action.actionPerformed(event);
 		}
+
 	}
 }
